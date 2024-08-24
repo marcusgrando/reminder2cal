@@ -45,24 +45,10 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     @objc func showMenu() {
         let menu = NSMenu()
         
-        let loginItemMenuItem = NSMenuItem(title: "", action: nil, keyEquivalent: "")
-        loginItemMenuItem.view = NSView(frame: NSRect(x: 0, y: 0, width: 250, height: 24))
-        
-        let label = NSTextField(labelWithString: "Start at Login")
-        label.frame = NSRect(x: 12, y: -3, width: 150, height: 24)
-        label.isEditable = false
-        label.isBordered = false
-        label.backgroundColor = .clear
-        
-        let toggle = NSSwitch(frame: NSRect(x: 200, y: 0, width: 50, height: 24))
-        toggle.state = appConfig.loginItemEnabled ? .on : .off
-        toggle.target = self
-        toggle.action = #selector(toggleLoginItem)
-        
-        loginItemMenuItem.view?.addSubview(label)
-        loginItemMenuItem.view?.addSubview(toggle)
-        
+        let loginItemTitle = appConfig.loginItemEnabled ? "Remove from Login Items" : "Start with Login"
+        let loginItemMenuItem = NSMenuItem(title: loginItemTitle, action: #selector(toggleLoginItem), keyEquivalent: "")
         menu.addItem(loginItemMenuItem)
+        
         menu.addItem(NSMenuItem(title: "Configure", action: #selector(openConfiguration), keyEquivalent: "C"))        
         menu.addItem(NSMenuItem.separator())
         menu.addItem(NSMenuItem(title: "Quit", action: #selector(quit), keyEquivalent: "Q"))
@@ -143,48 +129,36 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
     // New method to toggle login item
     @objc func toggleLoginItem() {
-        if #available(macOS 13.0, *) {
-            let appService = SMAppService.mainApp
-            let isEnabled = appConfig.loginItemEnabled
+        let appService = SMAppService.mainApp
+        let isEnabled = appConfig.loginItemEnabled
 
-            if isEnabled {
-                do {
-                    try appService.unregister()
-                    appConfig.loginItemEnabled = false
-                } catch {
-                    NSLog("[R2CLog] Error removing from login items: \(error)")
-                }
-            } else {
-                do {
-                    try appService.register()
-                    appConfig.loginItemEnabled = true
-                } catch {
-                    NSLog("[R2CLog] Error adding to login items: \(error)")
-                }
-            }
-
-            if let menu = statusItem?.menu {
-                if let loginItemMenuItem = menu.item(withTitle: "Add to Login Items") ?? menu.item(withTitle: "Remove from Login Items") {
-                    loginItemMenuItem.title = appConfig.loginItemEnabled ? "Remove from Login Items" : "Add to Login Items"
-                }
+        if isEnabled {
+            do {
+                try appService.unregister()
+                appConfig.loginItemEnabled = false
+            } catch {
+                NSLog("[R2CLog] Error removing from login items: \(error)")
             }
         } else {
-            NSLog("[R2CLog] SMAppService is only available on macOS 13.0 or newer.")
+            do {
+                try appService.register()
+                appConfig.loginItemEnabled = true
+            } catch {
+                NSLog("[R2CLog] Error adding to login items: \(error)")
+            }
+        }
+
+        if let menu = statusItem?.menu {
+            if let loginItemMenuItem = menu.item(at: 0) {
+                loginItemMenuItem.title = appConfig.loginItemEnabled ? "Remove from Login Items" : "Start with Login"
+            }
         }
     }
 
     // New method to check login item status
     func checkLoginItemStatus() {
-        if #available(macOS 13.0, *) {
-            let appService = SMAppService.mainApp
-            if appService.status == .enabled {
-                appConfig.loginItemEnabled = true
-            } else {
-                appConfig.loginItemEnabled = false
-            }
-        } else {
-            NSLog("[R2CLog] SMAppService is only available on macOS 13.0 or newer.")
-        }
+        let appService = SMAppService.mainApp
+        appConfig.loginItemEnabled = (appService.status == .enabled)
     }
 }
 
