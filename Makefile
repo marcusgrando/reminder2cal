@@ -14,5 +14,6 @@ $(OUTPUT):
 
 clean:
 	rm -rf Reminder2Cal.app .build
+	pkill Reminder2Cal
 
 .PHONY: all clean
