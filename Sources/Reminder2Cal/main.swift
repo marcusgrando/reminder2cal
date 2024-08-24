@@ -9,17 +9,10 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     var timer: Timer?
     var accessTimer: Timer?
     var statusItem: NSStatusItem?
-    let lockFilePath = "/tmp/Reminder2Cal.lock"
-    var lockFileHandle: FileHandle?
-    var appConfig = AppConfig()
+    let appConfig = AppConfig()
     var syncManager: Reminder2CalSync?
 
     func applicationDidFinishLaunching(_ aNotification: Notification) {
-        if !ensureSingleInstance() {
-            NSApp.terminate(nil)
-            return
-        }
-        
         NSApp.setActivationPolicy(.accessory)
         
         // Create the status item in the menu bar
@@ -88,43 +81,6 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
     func startSyncTimer() {
         timer = Timer.scheduledTimer(timeInterval: appConfig.timerInterval, target: self, selector: #selector(syncRemindersWithCalendar), userInfo: nil, repeats: true)
-    }
-
-    func ensureSingleInstance() -> Bool {
-        let fm = FileManager.default
-        
-        if fm.fileExists(atPath: lockFilePath) {
-            // Check if the previous process is still running
-            if let fileHandle = FileHandle(forUpdatingAtPath: lockFilePath),
-               let lockData = try? fileHandle.readToEnd(),
-               let pidString = String(data: lockData, encoding: .utf8),
-               let pid = Int32(pidString),
-               kill(pid, 0) == 0 {
-                NSLog("[R2CLog] An instance of Reminder2Cal is already running.")
-                return false
-            } else {
-                // Previous process died, remove the old lock file
-                try? fm.removeItem(atPath: lockFilePath)
-            }
-        }
-        
-        // Create the new lock file
-        fm.createFile(atPath: lockFilePath, contents: nil, attributes: nil)
-        
-        // Write the current PID to the lock file
-        if let fileHandle = FileHandle(forWritingAtPath: lockFilePath) {
-            let pidString = String(ProcessInfo.processInfo.processIdentifier)
-            fileHandle.write(pidString.data(using: .utf8)!)
-            self.lockFileHandle = fileHandle
-        }
-        
-        return true
-    }
-
-    func applicationWillTerminate(_ aNotification: Notification) {
-        // Close and remove the lock file
-        lockFileHandle?.closeFile()
-        try? FileManager.default.removeItem(atPath: lockFilePath)
     }
 
     // New method to toggle login item
