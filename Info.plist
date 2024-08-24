@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>CFBundleName</key>
+    <string>Reminder2Cal</string>
+    <key>CFBundleIdentifier</key>
+    <string>com.marcusgrando.Reminder2Cal</string>
+    <key>CFBundleVersion</key>
+    <string>1.0</string>
+    <key>CFBundleExecutable</key>
+    <string>Reminder2Cal</string>
+    <key>CFBundlePackageType</key>
+    <string>APPL</string>
+    <key>LSBackgroundOnly</key>
+    <true/>
+    <key>CFBundleIconFile</key>
+    <string>icon</string>
+    <key>NSCalendarsUsageDescription</key>
+    <string>Access to Calendar is required to sync reminders.</string>
+    <key>NSRemindersUsageDescription</key>
+    <string>Access to Reminders is required to sync reminders to calendar.</string>
+</dict>
+</plist>
