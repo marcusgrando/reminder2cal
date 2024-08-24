@@ -18,7 +18,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         // Create the status item in the menu bar
         statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
         if let button = statusItem?.button {
-            button.image = NSImage(named: NSImage.Name("icon"))?.resized(to: NSSize(width: 28, height: 28))
+            button.image = NSImage(named: NSImage.Name("icon"))?.resized(to: NSSize(width: 26, height: 26))
             button.action = #selector(showMenu)
         }
         
@@ -31,8 +31,8 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             self.syncManager?.performSync()
         }
 
-        // Check login item status
-        checkLoginItemStatus()
+        // Set login item status
+        appConfig.loginItemEnabled = (SMAppService.mainApp.status == .enabled)
     }
     
     @objc func showMenu() {
@@ -42,7 +42,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         let loginItemMenuItem = NSMenuItem(title: loginItemTitle, action: #selector(toggleLoginItem), keyEquivalent: "")
         menu.addItem(loginItemMenuItem)
         
-        menu.addItem(NSMenuItem(title: "Configure", action: #selector(openConfiguration), keyEquivalent: "C"))        
+        //menu.addItem(NSMenuItem(title: "Configure", action: #selector(openConfiguration), keyEquivalent: "C"))        
         menu.addItem(NSMenuItem.separator())
         menu.addItem(NSMenuItem(title: "Quit", action: #selector(quit), keyEquivalent: "Q"))
         statusItem?.menu = menu
@@ -109,12 +109,6 @@ class AppDelegate: NSObject, NSApplicationDelegate {
                 loginItemMenuItem.title = appConfig.loginItemEnabled ? "Remove from Login Items" : "Start with Login"
             }
         }
-    }
-
-    // New method to check login item status
-    func checkLoginItemStatus() {
-        let appService = SMAppService.mainApp
-        appConfig.loginItemEnabled = (appService.status == .enabled)
     }
 }
 
