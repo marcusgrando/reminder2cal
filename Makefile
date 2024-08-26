@@ -11,6 +11,7 @@ $(OUTPUT):
 	cp icon.icns Reminder2Cal.app/Contents/Resources/
 	xattr -c Reminder2Cal.app/Contents/Resources/icon.icns
 	cp $(OUTPUT) Reminder2Cal.app/Contents/MacOS/Reminder2Cal
+	codesign --force --verify --verbose --sign "Developer ID Application: Marcus Nestor Alves Grando (MY427949GW)" Reminder2Cal.app
 
 clean:
 	rm -rf Reminder2Cal.app .build
