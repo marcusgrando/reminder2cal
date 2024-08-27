@@ -41,18 +41,12 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         let loginItemTitle = appConfig.loginItemEnabled ? "Remove from Login Items" : "Start with Login"
         let loginItemMenuItem = NSMenuItem(title: loginItemTitle, action: #selector(toggleLoginItem), keyEquivalent: "")
         menu.addItem(loginItemMenuItem)
-        
-        //menu.addItem(NSMenuItem(title: "Configure", action: #selector(openConfiguration), keyEquivalent: "C"))        
         menu.addItem(NSMenuItem.separator())
-        menu.addItem(NSMenuItem(title: "Quit", action: #selector(quit), keyEquivalent: "Q"))
+        menu.addItem(NSMenuItem(title: "Quit", action: #selector(quit), keyEquivalent: "q"))
         statusItem?.menu = menu
         statusItem?.button?.performClick(nil)
     }
-    
-    @objc func openConfiguration() {
-        // Code to open the configuration window
-    }
-    
+        
     @objc func quit() {
         appConfig.saveConfig()
         NSApp.terminate(nil)
