@@ -98,7 +98,7 @@ public class Reminder2CalSync {
 
                 let reminderKeys = Set(reminders.compactMap { reminder -> String? in
                     guard let reminderDate = reminder.dueDateComponents?.date else { return nil }
-                    let reminderKey = "\(reminder.title ?? "")|\(dateFormatter.string(from: reminderDate))|\(reminder.notes ?? "")|\(reminder.isCompleted)"
+                    let reminderKey = "\(reminder.title ?? "") [\(reminder.calendar.title)]|\(dateFormatter.string(from: reminderDate))|\(reminder.notes ?? "")|\(reminder.isCompleted)"
                     return reminderKey
                 })
 
@@ -135,7 +135,7 @@ public class Reminder2CalSync {
                 // Create events for reminders that don't have a matching event
                 for reminder in reminders {
                     if let reminderDate = reminder.dueDateComponents?.date {
-                        let reminderKey = "\(reminder.title ?? "")|\(dateFormatter.string(from: reminderDate))|\(reminder.notes ?? "")|\(reminder.isCompleted)"
+                        let reminderKey = "\(reminder.title ?? "") [\(reminder.calendar.title)]|\(dateFormatter.string(from: reminderDate))|\(reminder.notes ?? "")|\(reminder.isCompleted)"
                         if !events.contains(where: { event in
                             let eventKey = "\(event.title ?? "")|\(dateFormatter.string(from: event.startDate))|\(event.notes ?? "")|\((event.alarms?.isEmpty == true))"
                             return eventKey == reminderKey
@@ -189,7 +189,7 @@ public class Reminder2CalSync {
     private func createEvent(for reminder: EKReminder, in calendar: EKCalendar) {
         let event = EKEvent(eventStore: eventStore)
         event.calendar = calendar
-        event.title = reminder.title ?? ""
+        event.title = "\(reminder.title ?? "") [\(reminder.calendar.title)]"
         event.startDate = reminder.dueDateComponents?.date ?? DateComponents(hour: appConfig.defaultHour, minute: appConfig.defaultMinute).date
         event.endDate = event.startDate.addingTimeInterval(TimeInterval(appConfig.eventDurationMinutes * 60))
         event.notes = reminder.notes
@@ -224,10 +224,14 @@ public class Reminder2CalSync {
     }
         
     private func showSyncAlert(message: String) {
-        DispatchQueue.main.async {
+        DispatchQueue.main.sync {
             let alert = NSAlert()
             alert.messageText = message
-            alert.runModal()
+            alert.addButton(withTitle: "Close")
+            let response = alert.runModal()
+            if response == .alertFirstButtonReturn {
+                NSApp.terminate(nil)
+            }
         }
     }
 }
