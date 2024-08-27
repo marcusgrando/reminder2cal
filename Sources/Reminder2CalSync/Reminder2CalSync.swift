@@ -96,25 +96,23 @@ public class Reminder2CalSync {
                 var changesMade = false
                 var eventsToRemove = [EKEvent]()
 
+                let reminderKeys = Set(reminders.compactMap { reminder -> String? in
+                    guard let reminderDate = reminder.dueDateComponents?.date else { return nil }
+                    let reminderKey = "\(reminder.title ?? "")|\(dateFormatter.string(from: reminderDate))|\(reminder.notes ?? "")|\(reminder.isCompleted)"
+                    return reminderKey
+                })
+
+                // Remove events that don't have a matching reminder
                 for event in events {
-                    let eventKey = "\(event.title ?? "")|\(dateFormatter.string(from: event.startDate))|\(event.notes ?? "")"
-                    var found = false
-                    for reminder in reminders {
-                        if let reminderDate = reminder.dueDateComponents?.date {
-                            let reminderKey = "\(reminder.title ?? "")|\(dateFormatter.string(from: reminderDate))|\(reminder.notes ?? "")"
-                            if eventKey == reminderKey {
-                                found = true
-                                break
-                            }
-                        }
-                    }
-                    if !found {
+                    let eventKey = "\(event.title ?? "")|\(dateFormatter.string(from: event.startDate))|\(event.notes ?? "")|\((event.alarms?.isEmpty == true))"
+                    if !reminderKeys.contains(eventKey) {
+                        NSLog("[R2CLog] Event to delete: \(eventKey)")
                         eventsToRemove.append(event)
                     }
                 }
 
                 if eventsToRemove.count >= self.appConfig.maxDeletionsWithoutConfirmation {
-                    DispatchQueue.main.async { [weak self] in
+                    DispatchQueue.main.sync { [weak self] in
                         guard let self = self else { return }
                         let alert = NSAlert()
                         alert.messageText = "Confirmation required"
@@ -134,11 +132,12 @@ public class Reminder2CalSync {
                     changesMade = true
                 }
 
+                // Create events for reminders that don't have a matching event
                 for reminder in reminders {
                     if let reminderDate = reminder.dueDateComponents?.date {
-                        let reminderKey = "\(reminder.title ?? "")|\(dateFormatter.string(from: reminderDate))|\(reminder.notes ?? "")"
+                        let reminderKey = "\(reminder.title ?? "")|\(dateFormatter.string(from: reminderDate))|\(reminder.notes ?? "")|\(reminder.isCompleted)"
                         if !events.contains(where: { event in
-                            let eventKey = "\(event.title ?? "")|\(dateFormatter.string(from: event.startDate))|\(event.notes ?? "")"
+                            let eventKey = "\(event.title ?? "")|\(dateFormatter.string(from: event.startDate))|\(event.notes ?? "")|\((event.alarms?.isEmpty == true))"
                             return eventKey == reminderKey
                         }) {
                             self.createEvent(for: reminder, in: calendar)
@@ -194,8 +193,10 @@ public class Reminder2CalSync {
         event.startDate = reminder.dueDateComponents?.date ?? DateComponents(hour: appConfig.defaultHour, minute: appConfig.defaultMinute).date
         event.endDate = event.startDate.addingTimeInterval(TimeInterval(appConfig.eventDurationMinutes * 60))
         event.notes = reminder.notes
-        event.addAlarm(EKAlarm(relativeOffset: TimeInterval(-appConfig.alarmOffsetMinutes * 60)))
-        saveEvent(event)        
+        if !reminder.isCompleted {
+            event.addAlarm(EKAlarm(relativeOffset: TimeInterval(-appConfig.alarmOffsetMinutes * 60)))
+        }
+        saveEvent(event)
         NSLog("[R2CLog] Created event: \(event.title ?? "") at \(String(describing: event.startDate)) with notes: \(event.notes ?? "")")
     }
 
