@@ -74,9 +74,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     }
     
     @objc func syncRemindersWithCalendar() {
-        DispatchQueue.global(qos: .background).async { [weak self] in
-            self?.syncManager?.performSync()
-        }
+        self.syncManager?.performSync()
     }
 
     func startSyncTimer() {

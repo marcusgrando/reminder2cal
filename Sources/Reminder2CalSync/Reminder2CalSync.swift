@@ -106,30 +106,31 @@ public class Reminder2CalSync {
                 for event in events {
                     let eventKey = "\(event.title ?? "")|\(dateFormatter.string(from: event.startDate))|\(event.notes ?? "")|\((event.alarms?.isEmpty == true))"
                     if !reminderKeys.contains(eventKey) {
-                        NSLog("[R2CLog] Event to delete: \(eventKey)")
                         eventsToRemove.append(event)
                     }
                 }
 
-                if eventsToRemove.count >= self.appConfig.maxDeletionsWithoutConfirmation {
-                    DispatchQueue.main.sync { [weak self] in
-                        guard let self = self else { return }
-                        let alert = NSAlert()
-                        alert.messageText = "Confirmation required"
-                        alert.informativeText = "You are about to delete \(eventsToRemove.count) events from calendar '\(self.appConfig.calendarName)' in account '\(self.appConfig.accountName)'. Do you want to continue?"
-                        alert.addButton(withTitle: "Close")
-                        alert.addButton(withTitle: "Yes")
-                        let response = alert.runModal()
-                        if response == .alertFirstButtonReturn {
-                            NSApp.terminate(nil)
-                        } else {
-                            self.removeEvents(eventsToRemove)
-                            changesMade = true
+                if eventsToRemove.count > 0 {
+                    if eventsToRemove.count >= self.appConfig.maxDeletionsWithoutConfirmation {
+                        DispatchQueue.main.sync { [weak self] in
+                            guard let self = self else { return }
+                            let alert = NSAlert()
+                            alert.messageText = "Confirmation required"
+                            alert.informativeText = "You are about to delete \(eventsToRemove.count) events from calendar '\(self.appConfig.calendarName)' in account '\(self.appConfig.accountName)'. Do you want to continue?"
+                            alert.addButton(withTitle: "Close")
+                            alert.addButton(withTitle: "Yes")
+                            let response = alert.runModal()
+                            if response == .alertFirstButtonReturn {
+                                NSApp.terminate(nil)
+                            } else {
+                                self.removeEvents(eventsToRemove)
+                                changesMade = true
+                            }
                         }
+                    } else {
+                        self.removeEvents(eventsToRemove)
+                        changesMade = true
                     }
-                } else {
-                    self.removeEvents(eventsToRemove)
-                    changesMade = true
                 }
 
                 // Create events for reminders that don't have a matching event
