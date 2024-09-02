@@ -1,30 +1,30 @@
-import Cocoa
+import SwiftUI
 
-public class AppConfig {
-    public var accountName: String
-    public var calendarName: String
-    public var numberOfDaysForSearch: Int
-    public var maxDeletionsWithoutConfirmation: Int
-    public var timerInterval: TimeInterval
-    public var requestAccessInterval: TimeInterval
-    public var eventDurationMinutes: Int
-    public var alarmOffsetMinutes: Int
-    public var reminderListName: [String]
-    public var loginItemEnabled: Bool
-    public var defaultHour: Int
-    public var defaultMinute: Int
+public class AppConfig: ObservableObject {
+    @Published public var accountName: String
+    @Published public var calendarName: String
+    @Published public var reminderListName: [String]
+    @Published public var numberOfDaysForSearch: Int
+    @Published public var maxDeletionsWithoutConfirmation: Int
+    @Published public var timerInterval: TimeInterval
+    @Published public var requestAccessInterval: TimeInterval
+    @Published public var eventDurationMinutes: Int
+    @Published public var alarmOffsetMinutes: Int
+    @Published public var loginItemEnabled: Bool
+    @Published public var defaultHour: Int
+    @Published public var defaultMinute: Int
 
     public init() {
         let config = AppConfig.loadConfig()
         self.accountName = config["accountName"] as? String ?? "iCloud"
         self.calendarName = config["calendarName"] as? String ?? "Reminders"
+        self.reminderListName = config["reminderListName"] as? [String] ?? ["Inbox"]
         self.numberOfDaysForSearch = config["numberOfDaysForSearch"] as? Int ?? 14
         self.maxDeletionsWithoutConfirmation = config["maxDeletionsWithoutConfirmation"] as? Int ?? 5
         self.timerInterval = config["timerInterval"] as? TimeInterval ?? 1800
         self.requestAccessInterval = config["requestAccessInterval"] as? TimeInterval ?? 60
         self.eventDurationMinutes = config["eventDurationMinutes"] as? Int ?? 15
         self.alarmOffsetMinutes = config["alarmOffsetMinutes"] as? Int ?? 0
-        self.reminderListName = config["reminderListName"] as? [String] ?? ["Inbox"]
         self.loginItemEnabled = config["loginItemEnabled"] as? Bool ?? false
         self.defaultHour = config["defaultHour"] as? Int ?? 9
         self.defaultMinute = config["defaultMinute"] as? Int ?? 0
@@ -62,13 +62,13 @@ public class AppConfig {
         let config: [String: Any] = [
             "accountName": self.accountName,
             "calendarName": self.calendarName,
+            "reminderListName": self.reminderListName,
             "numberOfDaysForSearch": self.numberOfDaysForSearch,
             "maxDeletionsWithoutConfirmation": self.maxDeletionsWithoutConfirmation,
             "timerInterval": self.timerInterval,
             "requestAccessInterval": self.requestAccessInterval,
             "eventDurationMinutes": self.eventDurationMinutes,
             "alarmOffsetMinutes": self.alarmOffsetMinutes,
-            "reminderListName": self.reminderListName,
             "loginItemEnabled": self.loginItemEnabled,
             "defaultHour": self.defaultHour,
             "defaultMinute": self.defaultMinute

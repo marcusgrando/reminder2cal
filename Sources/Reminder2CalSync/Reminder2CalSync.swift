@@ -77,8 +77,8 @@ public class Reminder2CalSync {
                 return
             }
 
-            let startDate = Calendar.current.date(from: Calendar.current.dateComponents([.yearForWeekOfYear, .weekOfYear], from: Date()))!
-            let endDate = Calendar.current.date(byAdding: .day, value: self.appConfig.numberOfDaysForSearch, to: startDate)!
+            let startDate = Calendar.current.date(byAdding: .day, value: -self.appConfig.numberOfDaysForSearch, to: Date())!
+            let endDate = Calendar.current.date(byAdding: .day, value: self.appConfig.numberOfDaysForSearch, to: Date())!
 
             self.fetchReminders(startDate: startDate, endDate: endDate) { [weak self] reminders in
                 guard let self = self else { return }

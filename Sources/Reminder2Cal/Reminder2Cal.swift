@@ -3,14 +3,16 @@ import EventKit
 import ServiceManagement
 import AppConfig
 import Reminder2CalSync
+import SwiftUI
 
 class AppDelegate: NSObject, NSApplicationDelegate {
     let eventStore = EKEventStore()
     var timer: Timer?
     var accessTimer: Timer?
     var statusItem: NSStatusItem?
-    let appConfig = AppConfig()
+    var appConfig = AppConfig()
     var syncManager: Reminder2CalSync?
+    var settingsWindow: NSWindow?
 
     func applicationDidFinishLaunching(_ aNotification: Notification) {
         NSApp.setActivationPolicy(.accessory)
@@ -42,11 +44,46 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         let loginItemMenuItem = NSMenuItem(title: loginItemTitle, action: #selector(toggleLoginItem), keyEquivalent: "")
         menu.addItem(loginItemMenuItem)
         menu.addItem(NSMenuItem.separator())
+        menu.addItem(NSMenuItem(title: "Settings...", action: #selector(showSettings), keyEquivalent: ","))
+        menu.addItem(NSMenuItem.separator())
         menu.addItem(NSMenuItem(title: "Quit", action: #selector(quit), keyEquivalent: "q"))
         statusItem?.menu = menu
         statusItem?.button?.performClick(nil)
     }
+    
+    @objc func showSettings() {
+        if settingsWindow == nil {
+            createSettingsWindow()
+        }
         
+        settingsWindow?.makeKeyAndOrderFront(nil)
+        NSApp.activate(ignoringOtherApps: true)
+    }
+
+    func createSettingsWindow() {
+        let settingsView = SettingsView(appConfig: appConfig, onSave: { [weak self] in
+            self?.settingsWindow?.close()
+            self?.settingsWindow = nil
+        }, onCancel: { [weak self] in
+            self?.settingsWindow?.close()
+            self?.settingsWindow = nil
+        })
+        settingsWindow = NSWindow(
+            contentRect: NSRect(x: 0, y: 0, width: 400, height: 600),
+            styleMask: [.titled, .closable, .miniaturizable],
+            backing: .buffered, defer: false)
+        settingsWindow?.title = "Settings"
+        settingsWindow?.center()
+        settingsWindow?.setFrameAutosaveName("Settings")
+        settingsWindow?.contentView = NSHostingView(rootView: settingsView)
+        
+        // Adiciona observador para o evento de fechamento da janela
+        NotificationCenter.default.addObserver(self, selector: #selector(windowWillClose), name: NSWindow.willCloseNotification, object: settingsWindow)
+        
+        // Mantém uma referência forte ao settingsWindow enquanto estiver visível
+        settingsWindow?.isReleasedWhenClosed = false
+    }
+    
     @objc func quit() {
         appConfig.saveConfig()
         NSApp.terminate(nil)
@@ -75,7 +112,6 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         timer = Timer.scheduledTimer(timeInterval: appConfig.timerInterval, target: self, selector: #selector(syncRemindersWithCalendar), userInfo: nil, repeats: true)
     }
 
-    // New method to toggle login item
     @objc func toggleLoginItem() {
         let appService = SMAppService.mainApp
         let isEnabled = appConfig.loginItemEnabled
@@ -100,6 +136,12 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             if let loginItemMenuItem = menu.item(at: 0) {
                 loginItemMenuItem.title = appConfig.loginItemEnabled ? "Remove from Login Items" : "Start with Login"
             }
+        }
+    }
+    
+    @objc func windowWillClose(notification: Notification) {
+        if let window = notification.object as? NSWindow, window == settingsWindow {
+            settingsWindow = nil
         }
     }
 }
