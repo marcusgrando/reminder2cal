@@ -40,15 +40,17 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     @objc func showMenu() {
         let menu = NSMenu()
         
-        let loginItemTitle = appConfig.loginItemEnabled ? "Remove from Login Items" : "Start with Login"
-        let loginItemMenuItem = NSMenuItem(title: loginItemTitle, action: #selector(toggleLoginItem), keyEquivalent: "")
-        menu.addItem(loginItemMenuItem)
+        menu.addItem(NSMenuItem(title: "Reminder2Cal", action: #selector(dummyAction), keyEquivalent: ""))
         menu.addItem(NSMenuItem.separator())
         menu.addItem(NSMenuItem(title: "Settings...", action: #selector(showSettings), keyEquivalent: ","))
         menu.addItem(NSMenuItem.separator())
         menu.addItem(NSMenuItem(title: "Quit", action: #selector(quit), keyEquivalent: "q"))
         statusItem?.menu = menu
         statusItem?.button?.performClick(nil)
+    }
+    
+    @objc func dummyAction() {
+        // Dummy action
     }
     
     @objc func showSettings() {
@@ -69,7 +71,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             self?.settingsWindow = nil
         })
         settingsWindow = NSWindow(
-            contentRect: NSRect(x: 0, y: 0, width: 400, height: 600),
+            contentRect: NSRect(x: 0, y: 0, width: 450, height: 700),
             styleMask: [.titled, .closable, .miniaturizable],
             backing: .buffered, defer: false)
         settingsWindow?.title = "Settings"
@@ -112,33 +114,6 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         timer = Timer.scheduledTimer(timeInterval: appConfig.timerInterval, target: self, selector: #selector(syncRemindersWithCalendar), userInfo: nil, repeats: true)
     }
 
-    @objc func toggleLoginItem() {
-        let appService = SMAppService.mainApp
-        let isEnabled = appConfig.loginItemEnabled
-
-        if isEnabled {
-            do {
-                try appService.unregister()
-                appConfig.loginItemEnabled = false
-            } catch {
-                NSLog("[R2CLog] Error removing from login items: \(error)")
-            }
-        } else {
-            do {
-                try appService.register()
-                appConfig.loginItemEnabled = true
-            } catch {
-                NSLog("[R2CLog] Error adding to login items: \(error)")
-            }
-        }
-
-        if let menu = statusItem?.menu {
-            if let loginItemMenuItem = menu.item(at: 0) {
-                loginItemMenuItem.title = appConfig.loginItemEnabled ? "Remove from Login Items" : "Start with Login"
-            }
-        }
-    }
-    
     @objc func windowWillClose(notification: Notification) {
         if let window = notification.object as? NSWindow, window == settingsWindow {
             settingsWindow = nil

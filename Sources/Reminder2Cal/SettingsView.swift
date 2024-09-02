@@ -1,6 +1,7 @@
 import SwiftUI
 import AppConfig
 import Combine
+import ServiceManagement
 
 struct SettingsView: View {
     @State private var accountName: String
@@ -47,189 +48,89 @@ struct SettingsView: View {
     var body: some View {
         VStack {
             Form {
-                Section(header: Text("Account Settings").frame(maxWidth: .infinity, alignment: .leading).bold().padding(.leading, 15)) {
-                    VStack {
-                        HStack {
-                            Text("Account")
-                                .frame(maxWidth: .infinity, alignment: .leading)
-                                .padding(.leading, 20)
-                            Spacer().frame(width: 10)
-                            Picker("", selection: $accountName) {
-                                ForEach(accounts, id: \.self) { account in
-                                    Text(account)
-                                }
+                Section(header: Text("Account Settings").bold().padding(.top, 10)) {
+                    Divider()
+                    Picker("Account", selection: $accountName) {
+                        ForEach(accounts, id: \.self) { account in
+                            Text(account)
+                        }
+                    }
+                }
+                
+                Section(header: Text("Calendar Settings").bold().padding(.top, 10)) {
+                    Divider()
+                    Picker("Calendar", selection: $calendarName) {
+                        ForEach(calendars, id: \.self) { calendar in
+                            Text(calendar)
+                        }
+                    }
+                }
+
+                Section(header: Text("Reminder List").bold().padding(.top, 10)) {
+                    Divider()
+                    Picker("Reminder List", selection: $reminderListName) {
+                        ForEach(reminderLists, id: \.self) { list in
+                            Text(list)
+                        }
+                    }
+                }
+                
+                Section(header: Text("Sync Settings").bold().padding(.top, 10)) {
+                    Divider()
+                    TextField("Number of Days for Search", value: $numberOfDaysForSearch, formatter: NumberFormatter())
+                        .onChange(of: numberOfDaysForSearch) { newValue in
+                            numberOfDaysForSearch = min(max(newValue, 1), 365)
+                        }
+                    TextField("Max Deletions Without Confirmation", value: $maxDeletionsWithoutConfirmation, formatter: NumberFormatter())
+                        .onChange(of: maxDeletionsWithoutConfirmation) { newValue in
+                            maxDeletionsWithoutConfirmation = min(max(newValue, 1), 100)
+                        }
+                }
+                
+                Section(header: Text("Running Settings").bold().padding(.top, 10)) {
+                    Divider()
+                    TextField("Timer Interval (seconds)", value: $timerInterval, formatter: NumberFormatter())
+                        .onChange(of: timerInterval) { newValue in
+                            timerInterval = min(max(newValue, 60), 3600)
+                        }
+                    TextField("Request Access Interval (seconds)", value: $requestAccessInterval, formatter: NumberFormatter())
+                        .onChange(of: requestAccessInterval) { newValue in
+                            requestAccessInterval = min(max(newValue, 60), 3600)
+                        }
+                }
+                
+                Section(header: Text("Calendar Settings").bold().padding(.top, 10)) {
+                    Divider()
+                    TextField("Event Duration (minutes)", value: $eventDurationMinutes, formatter: NumberFormatter())
+                        .onChange(of: eventDurationMinutes) { newValue in
+                            eventDurationMinutes = min(max(newValue, 1), 1440)
+                        }
+                    TextField("Alarm Offset (minutes)", value: $alarmOffsetMinutes, formatter: NumberFormatter())
+                    TextField("Reminders without time use", text: Binding(
+                        get: { String(format: "%02d:%02d", defaultHour, defaultMinute) },
+                        set: { newValue in
+                            let components = newValue.split(separator: ":").map { Int($0) ?? 0 }
+                            if components.count == 2 {
+                                defaultHour = components[0]
+                                defaultMinute = components[1]
                             }
-                            Spacer().frame(width: 10)
                         }
-                    }
+                    ))
                 }
                 
-                Section(header: Text("Calendar Settings").frame(maxWidth: .infinity, alignment: .leading).bold().padding(.leading, 15)) {
-                    HStack(alignment: .top) {
-                        Spacer().frame(width: 10)
-                        VStack(alignment: .leading) {
-                            Text("Calendar")
-                                .padding(.leading, 20)
-                        }
-                        Spacer().frame(width: 10)
-                        Picker("", selection: $calendarName) {
-                            ForEach(calendars, id: \.self) { calendar in
-                                Text(calendar)
-                            }
-                        }
-                        Spacer().frame(width: 10)
-                    }
-                }
-                
-                Section(header: Text("Reminder List").frame(maxWidth: .infinity, alignment: .leading).bold().padding(.leading, 15)) {
-                    HStack(alignment: .top) {
-                        Spacer().frame(width: 10)
-                        VStack(alignment: .leading) {
-                            Text("Reminder List")
-                                .padding(.leading, 20)
-                        }
-                        Spacer().frame(width: 10)
-                        Picker("", selection: $reminderListName) {
-                            ForEach(reminderLists, id: \.self) { list in
-                                Text(list)
-                            }
-                        }
-                        Spacer().frame(width: 10)
-                    }
-                }
-                
-                Section(header: Text("Search Settings").frame(maxWidth: .infinity, alignment: .leading).bold().padding(.leading, 15)) {
-                    HStack {
-                        Spacer().frame(width: 10)
-                        VStack(alignment: .leading) {
-                            Text("Number of Days for Search")
-                                .padding(.leading, 20)
-                            Text("Max Deletions Without Confirmation")
-                                .padding(.leading, 20)
-                        }
-                        Spacer().frame(width: 10)
-                        VStack {
-                            TextField("", value: $numberOfDaysForSearch, formatter: NumberFormatter())
-                                .textFieldStyle(RoundedBorderTextFieldStyle())
-                                .onChange(of: numberOfDaysForSearch) { newValue in
-                                    if newValue < 1 {
-                                        numberOfDaysForSearch = 1
-                                    } else if newValue > 365 {
-                                        numberOfDaysForSearch = 365
-                                    }
-                                }
-                            TextField("", value: $maxDeletionsWithoutConfirmation, formatter: NumberFormatter())
-                                .textFieldStyle(RoundedBorderTextFieldStyle())
-                                .onChange(of: maxDeletionsWithoutConfirmation) { newValue in
-                                    if newValue < 1 {
-                                        maxDeletionsWithoutConfirmation = 1
-                                    } else if newValue > 100 {
-                                        maxDeletionsWithoutConfirmation = 100
-                                    }
-                                }
-                        }
-                        Spacer().frame(width: 10)
-                    }
-                }
-                
-                Section(header: Text("Timer Settings").frame(maxWidth: .infinity, alignment: .leading).bold().padding(.leading, 15)) {
-                    HStack {
-                        Spacer().frame(width: 10)
-                        VStack(alignment: .leading) {
-                            Text("Timer Interval (seconds)")
-                                .padding(.leading, 20)
-                            Text("Request Access Interval (seconds)")
-                                .padding(.leading, 20)
-                        }
-                        Spacer().frame(width: 10)
-                        VStack {
-                            TextField("", value: $timerInterval, formatter: NumberFormatter())
-                                .textFieldStyle(RoundedBorderTextFieldStyle())
-                                .onChange(of: timerInterval) { newValue in
-                                    if newValue < 60 {
-                                        timerInterval = 60
-                                    } else if newValue > 3600 {
-                                        timerInterval = 3600
-                                    }
-                                }
-                            TextField("", value: $requestAccessInterval, formatter: NumberFormatter())
-                                .textFieldStyle(RoundedBorderTextFieldStyle())
-                                .onChange(of: requestAccessInterval) { newValue in
-                                    if newValue < 60 {
-                                        requestAccessInterval = 60
-                                    } else if newValue > 3600 {
-                                        requestAccessInterval = 3600
-                                    }
-                                }
-                        }
-                        Spacer().frame(width: 10)
-                    }
-                }
-                
-                Section(header: Text("Event Settings").frame(maxWidth: .infinity, alignment: .leading).bold().padding(.leading, 15)) {
-                    HStack {
-                        Spacer().frame(width: 10)
-                        VStack(alignment: .leading) {
-                            Text("Event Duration (minutes)")
-                                .padding(.leading, 20)
-                            Text("Alarm Offset (minutes)")
-                                .padding(.leading, 20)
-                        }
-                        Spacer().frame(width: 10)
-                        VStack {
-                            TextField("", value: $eventDurationMinutes, formatter: NumberFormatter())
-                                .textFieldStyle(RoundedBorderTextFieldStyle())
-                                .onChange(of: eventDurationMinutes) { newValue in
-                                    if newValue < 1 {
-                                        eventDurationMinutes = 1
-                                    } else if newValue > 1440 {
-                                        eventDurationMinutes = 1440
-                                    }
-                                }
-                            TextField("", value: $alarmOffsetMinutes, formatter: NumberFormatter())
-                                .textFieldStyle(RoundedBorderTextFieldStyle())
-                        }
-                        Spacer().frame(width: 10)
-                    }
-                }
-                
-                Section(header: Text("Reminders without Time").frame(maxWidth: .infinity, alignment: .leading).bold().padding(.leading, 15)) {
-                    HStack {
-                        Spacer().frame(width: 10)
-                        VStack(alignment: .leading) {
-                            Text("HH:MM")
-                                .padding(.leading, 20)
-                        }
-                        Spacer().frame(width: 10)
-                        TextField("", text: Binding(
-                            get: {
-                                String(format: "%02d:%02d", defaultHour, defaultMinute)
-                            },
-                            set: { newValue in
-                                let components = newValue.split(separator: ":").map { Int($0) ?? 0 }
-                                if components.count == 2 {
-                                    defaultHour = components[0]
-                                    defaultMinute = components[1]
-                                }
-                            }
-                        ))
-                        .textFieldStyle(RoundedBorderTextFieldStyle())
-                        Spacer().frame(width: 10)
-                    }
-                }
-                
-                Section {
-                    HStack {
-                        Spacer().frame(width: 10)
+                Section(header: Text("Login Item").bold().padding(.top, 10)) {
+                    Divider()
+                    Toggle(isOn: $loginItemEnabled) {
                         Text("Start with Login")
-                            .padding(.leading, 20)
-                        Spacer().frame(width: 10)
-                        Toggle("", isOn: $loginItemEnabled)
-                            .toggleStyle(SwitchToggleStyle())
-                        Spacer().frame(width: 10)
+                    }
+                    .toggleStyle(SwitchToggleStyle())
+                    .onChange(of: loginItemEnabled) { newValue in
+                        toggleLoginItem(newValue)
                     }
                 }
             }
+            .padding(.leading, 20)
+            .padding(.trailing, 20)
             HStack {
                 Button("Cancel") {
                     onCancel()
@@ -262,6 +163,21 @@ struct SettingsView: View {
                 }
                 return event
             }
+        }
+    }
+
+    private func toggleLoginItem(_ isEnabled: Bool) {
+        let appService = SMAppService.mainApp
+        do {
+            if isEnabled {
+                try appService.register()
+            } else {
+                try appService.unregister()
+            }
+            appConfig.loginItemEnabled = isEnabled
+        } catch {
+            NSLog("[R2CLog] Error setting login item status: \(error)")
+            loginItemEnabled = !isEnabled
         }
     }
 }
