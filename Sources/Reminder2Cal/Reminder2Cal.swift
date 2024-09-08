@@ -20,7 +20,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         // Create the status item in the menu bar
         statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
         if let button = statusItem?.button {
-            button.image = NSImage(named: NSImage.Name("icon"))?.resized(to: NSSize(width: 26, height: 26))
+            button.image = NSImage(named: "MenuIcon")
             button.action = #selector(showMenu)
         }
         
@@ -40,19 +40,18 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     @objc func showMenu() {
         let menu = NSMenu()
         
-        menu.addItem(NSMenuItem(title: "Reminder2Cal", action: #selector(dummyAction), keyEquivalent: ""))
+        let menuItem = NSMenuItem(title: "", action: nil, keyEquivalent: "")
+        menuItem.attributedTitle = NSAttributedString(string: "Reminder2Cal", attributes: [
+            .font: NSFont.systemFont(ofSize: 14, weight: .bold),
+        ])
+        menu.addItem(menuItem)
         menu.addItem(NSMenuItem.separator())
         menu.addItem(NSMenuItem(title: "Settings...", action: #selector(showSettings), keyEquivalent: ","))
-        menu.addItem(NSMenuItem.separator())
         menu.addItem(NSMenuItem(title: "Quit", action: #selector(quit), keyEquivalent: "q"))
         statusItem?.menu = menu
         statusItem?.button?.performClick(nil)
     }
-    
-    @objc func dummyAction() {
-        // Dummy action
-    }
-    
+
     @objc func showSettings() {
         if settingsWindow == nil {
             createSettingsWindow()
@@ -60,6 +59,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         
         settingsWindow?.makeKeyAndOrderFront(nil)
         NSApp.activate(ignoringOtherApps: true)
+        NSApp.setActivationPolicy(.regular)
     }
 
     func createSettingsWindow() {
@@ -117,6 +117,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     @objc func windowWillClose(notification: Notification) {
         if let window = notification.object as? NSWindow, window == settingsWindow {
             settingsWindow = nil
+            NSApp.setActivationPolicy(.accessory)
         }
     }
 }
