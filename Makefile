@@ -10,7 +10,7 @@ BUILD_NUMBER := $(shell git rev-list --count HEAD 2>/dev/null || echo "0")
 SWIFT := swift build
 BUILD_CONFIG := release
 SWIFT_FLAGS := --configuration $(BUILD_CONFIG)
-MIN_MACOS_VERSION := 13.0
+MIN_MACOS_VERSION := 14.0
 
 # Paths
 BUILD_DIR := .build/$(BUILD_CONFIG)

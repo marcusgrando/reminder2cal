@@ -25,17 +25,33 @@ public class Reminder2CalSync {
     }
 
     private func requestReminderAccess(completion: @escaping (Bool) -> Void) {
-        eventStore.requestAccess(to: .reminder) { granted, error in
-            DispatchQueue.main.async {
-                completion(granted)
+        if #available(macOS 14.0, *) {
+            eventStore.requestFullAccessToReminders { granted, error in
+                DispatchQueue.main.async {
+                    completion(granted)
+                }
+            }
+        } else {
+            eventStore.requestAccess(to: .reminder) { granted, error in
+                DispatchQueue.main.async {
+                    completion(granted)
+                }
             }
         }
     }
 
     private func requestCalendarAccess(completion: @escaping (Bool) -> Void) {
-        eventStore.requestAccess(to: .event) { granted, error in
-            DispatchQueue.main.async {
-                completion(granted)
+        if #available(macOS 14.0, *) {
+            eventStore.requestFullAccessToEvents { granted, error in
+                DispatchQueue.main.async {
+                    completion(granted)
+                }
+            }
+        } else {
+            eventStore.requestAccess(to: .event) { granted, error in
+                DispatchQueue.main.async {
+                    completion(granted)
+                }
             }
         }
     }
@@ -76,10 +92,18 @@ public class Reminder2CalSync {
         let reminderStatus = EKEventStore.authorizationStatus(for: .reminder)
         let calendarStatus = EKEventStore.authorizationStatus(for: .event)
 
-        if reminderStatus != .authorized {
-            showRemindersAccessAlert()
-        } else if calendarStatus != .authorized {
-            showCalendarAccessAlert()
+        if #available(macOS 14.0, *) {
+            if reminderStatus != .fullAccess && reminderStatus != .writeOnly {
+                showRemindersAccessAlert()
+            } else if calendarStatus != .fullAccess && calendarStatus != .writeOnly {
+                showCalendarAccessAlert()
+            }
+        } else {
+            if reminderStatus != .authorized {
+                showRemindersAccessAlert()
+            } else if calendarStatus != .authorized {
+                showCalendarAccessAlert()
+            }
         }
     }
 

@@ -64,7 +64,7 @@ struct SettingsView: View {
                         }
                     }
                     .toggleStyle(SwitchToggleStyle(tint: .blue))
-                    .onChange(of: loginItemEnabled) { newValue in
+                    .onChange(of: loginItemEnabled) { _, newValue in
                         toggleLoginItem(newValue)
                     }
                 } header: {
