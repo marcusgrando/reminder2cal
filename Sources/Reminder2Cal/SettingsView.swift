@@ -209,8 +209,9 @@ struct SettingsView: View {
 
                 Button("Save") {
                     saveSettings()
+                    onSave()
                 }
-                .keyboardShortcut("s", modifiers: .command)
+                .keyboardShortcut(.defaultAction)
                 .buttonStyle(.borderedProminent)
             }
             .padding()
@@ -228,9 +229,6 @@ struct SettingsView: View {
         }
         .onChange(of: reminderAccountName) { _, _ in
             loadReminderLists()
-        }
-        .onExitCommand {
-            onCancel()
         }
     }
 
@@ -303,7 +301,8 @@ struct SettingsView: View {
     private func saveSettings() {
         if appConfig.calendarAccountName != calendarAccountName {
             appConfig.logger?(
-                "Setting changed: Calendar Account from '\(appConfig.calendarAccountName)' to '\(calendarAccountName)'")
+                "Setting changed: Calendar Account from '\(appConfig.calendarAccountName)' to '\(calendarAccountName)'"
+            )
             appConfig.calendarAccountName = calendarAccountName
         }
         if appConfig.calendarName != calendarName {
@@ -313,7 +312,8 @@ struct SettingsView: View {
         }
         if appConfig.reminderAccountName != reminderAccountName {
             appConfig.logger?(
-                "Setting changed: Reminder Account from '\(appConfig.reminderAccountName)' to '\(reminderAccountName)'")
+                "Setting changed: Reminder Account from '\(appConfig.reminderAccountName)' to '\(reminderAccountName)'"
+            )
             appConfig.reminderAccountName = reminderAccountName
         }
         if appConfig.reminderListName.first != reminderListName {

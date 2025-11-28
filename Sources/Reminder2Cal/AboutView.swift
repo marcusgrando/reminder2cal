@@ -33,14 +33,5 @@ struct AboutView: View {
         }
         .padding(40)
         .frame(width: 350)
-        .onAppear {
-            NSEvent.addLocalMonitorForEvents(matching: .keyDown) { event in
-                if event.keyCode == 53 {  // Key 53 = ESC code
-                    onClose?()
-                    return nil
-                }
-                return event
-            }
-        }
     }
 }

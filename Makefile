@@ -145,6 +145,15 @@ uninstall: ## Uninstall the app from /Applications
 # Release Management
 # ============================================================================
 
+dmg: app ## Create a DMG for distribution
+	@echo "$(BLUE)Creating DMG...$(NC)"
+	@rm -f Reminder2Cal.dmg
+	@hdiutil create -volname "Reminder2Cal" -srcfolder $(APP_BUNDLE) -ov -format UDZO Reminder2Cal.dmg
+	@echo "$(GREEN)✓ DMG created: Reminder2Cal.dmg$(NC)"
+
+dist: clean app dmg ## Clean build and create distribution DMG
+	@echo "$(GREEN)✓ Distribution build complete$(NC)"
+
 bump-patch: ## Bump patch version (1.0.0 -> 1.0.1)
 	@echo "$(BLUE)Bumping patch version...$(NC)"
 	@$(eval NEW_VERSION := $(shell echo $(VERSION) | awk -F. '{print $$1"."$$2"."$$3+1}'))
