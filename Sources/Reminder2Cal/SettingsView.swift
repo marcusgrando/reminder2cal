@@ -1,7 +1,7 @@
-import SwiftUI
 import AppConfig
 import Combine
 import ServiceManagement
+import SwiftUI
 
 struct SettingsView: View {
     @State private var accountName: String
@@ -15,11 +15,10 @@ struct SettingsView: View {
     @State private var alarmOffsetMinutes: Int
     @State private var reminderLists: [String]
     @State private var loginItemEnabled: Bool
-    @State private var defaultHour: Int
-    @State private var defaultMinute: Int
+    @State private var defaultTime: Date
     @State private var accounts: [String]
     @State private var calendars: [String]
-    
+
     @ObservedObject var appConfig: AppConfig
     var onSave: () -> Void
     var onCancel: () -> Void
@@ -29,15 +28,22 @@ struct SettingsView: View {
         self._calendarName = State(initialValue: appConfig.calendarName)
         self._reminderListName = State(initialValue: appConfig.reminderListName.first ?? "Inbox")
         self._numberOfDaysForSearch = State(initialValue: appConfig.numberOfDaysForSearch)
-        self._maxDeletionsWithoutConfirmation = State(initialValue: appConfig.maxDeletionsWithoutConfirmation)
+        self._maxDeletionsWithoutConfirmation = State(
+            initialValue: appConfig.maxDeletionsWithoutConfirmation)
         self._timerInterval = State(initialValue: appConfig.timerInterval)
         self._requestAccessInterval = State(initialValue: appConfig.requestAccessInterval)
         self._eventDurationMinutes = State(initialValue: appConfig.eventDurationMinutes)
         self._alarmOffsetMinutes = State(initialValue: appConfig.alarmOffsetMinutes)
         self._reminderLists = State(initialValue: ["Inbox", "Work", "Personal", "All"])
         self._loginItemEnabled = State(initialValue: appConfig.loginItemEnabled)
-        self._defaultHour = State(initialValue: appConfig.defaultHour)
-        self._defaultMinute = State(initialValue: appConfig.defaultMinute)
+
+        // Initialize defaultTime from hour/minute
+        var components = DateComponents()
+        components.hour = appConfig.defaultHour
+        components.minute = appConfig.defaultMinute
+        let date = Calendar.current.date(from: components) ?? Date()
+        self._defaultTime = State(initialValue: date)
+
         self._accounts = State(initialValue: ["iCloud", "Google", "Outlook"])
         self._calendars = State(initialValue: ["Reminders", "Work", "Personal"])
         self.appConfig = appConfig
@@ -46,124 +52,180 @@ struct SettingsView: View {
     }
 
     var body: some View {
-        VStack {
+        VStack(spacing: 0) {
             Form {
-                Section(header: Text("Account Settings").bold().padding(.top, 10)) {
-                    Divider()
-                    Picker("Account", selection: $accountName) {
-                        ForEach(accounts, id: \.self) { account in
-                            Text(account)
-                        }
-                    }
-                }
-                
-                Section(header: Text("Calendar Settings").bold().padding(.top, 10)) {
-                    Divider()
-                    Picker("Calendar", selection: $calendarName) {
-                        ForEach(calendars, id: \.self) { calendar in
-                            Text(calendar)
-                        }
-                    }
-                }
-
-                Section(header: Text("Reminder List").bold().padding(.top, 10)) {
-                    Divider()
-                    Picker("Reminder List", selection: $reminderListName) {
-                        ForEach(reminderLists, id: \.self) { list in
-                            Text(list)
-                        }
-                    }
-                }
-                
-                Section(header: Text("Sync Settings").bold().padding(.top, 10)) {
-                    Divider()
-                    TextField("Number of Days for Search", value: $numberOfDaysForSearch, formatter: NumberFormatter())
-                        .onChange(of: numberOfDaysForSearch) { newValue in
-                            numberOfDaysForSearch = min(max(newValue, 1), 365)
-                        }
-                    TextField("Max Deletions Without Confirmation", value: $maxDeletionsWithoutConfirmation, formatter: NumberFormatter())
-                        .onChange(of: maxDeletionsWithoutConfirmation) { newValue in
-                            maxDeletionsWithoutConfirmation = min(max(newValue, 1), 100)
-                        }
-                }
-                
-                Section(header: Text("Running Settings").bold().padding(.top, 10)) {
-                    Divider()
-                    TextField("Timer Interval (seconds)", value: $timerInterval, formatter: NumberFormatter())
-                        .onChange(of: timerInterval) { newValue in
-                            timerInterval = min(max(newValue, 60), 3600)
-                        }
-                    TextField("Request Access Interval (seconds)", value: $requestAccessInterval, formatter: NumberFormatter())
-                        .onChange(of: requestAccessInterval) { newValue in
-                            requestAccessInterval = min(max(newValue, 60), 3600)
-                        }
-                }
-                
-                Section(header: Text("Calendar Settings").bold().padding(.top, 10)) {
-                    Divider()
-                    TextField("Event Duration (minutes)", value: $eventDurationMinutes, formatter: NumberFormatter())
-                        .onChange(of: eventDurationMinutes) { newValue in
-                            eventDurationMinutes = min(max(newValue, 1), 1440)
-                        }
-                    TextField("Alarm Offset (minutes)", value: $alarmOffsetMinutes, formatter: NumberFormatter())
-                    TextField("Reminders without time use", text: Binding(
-                        get: { String(format: "%02d:%02d", defaultHour, defaultMinute) },
-                        set: { newValue in
-                            let components = newValue.split(separator: ":").map { Int($0) ?? 0 }
-                            if components.count == 2 {
-                                defaultHour = components[0]
-                                defaultMinute = components[1]
-                            }
-                        }
-                    ))
-                }
-                
-                Section(header: Text("Login Item").bold().padding(.top, 10)) {
-                    Divider()
+                Section {
                     Toggle(isOn: $loginItemEnabled) {
-                        Text("Start with Login")
+                        Label {
+                            Text("Start with Login")
+                        } icon: {
+                            Image(systemName: "power")
+                                .foregroundColor(.green)
+                        }
                     }
-                    .toggleStyle(SwitchToggleStyle())
+                    .toggleStyle(SwitchToggleStyle(tint: .blue))
                     .onChange(of: loginItemEnabled) { newValue in
                         toggleLoginItem(newValue)
                     }
+                } header: {
+                    Text("General")
+                }
+
+                Section {
+                    Picker(selection: $accountName) {
+                        ForEach(accounts, id: \.self) { account in
+                            Text(account)
+                        }
+                    } label: {
+                        Label("Account", systemImage: "person.crop.circle")
+                    }
+
+                    Picker(selection: $calendarName) {
+                        ForEach(calendars, id: \.self) { calendar in
+                            Text(calendar)
+                        }
+                    } label: {
+                        Label("Calendar", systemImage: "calendar")
+                    }
+
+                    Picker(selection: $reminderListName) {
+                        ForEach(reminderLists, id: \.self) { list in
+                            Text(list)
+                        }
+                    } label: {
+                        Label("Reminder List", systemImage: "list.bullet")
+                    }
+                } header: {
+                    Text("Accounts & Sources")
+                }
+
+                Section {
+                    Stepper(value: $numberOfDaysForSearch, in: 1...365) {
+                        HStack {
+                            Label("Search Range", systemImage: "magnifyingglass")
+                            Spacer()
+                            Text("\(numberOfDaysForSearch) days")
+                                .foregroundColor(.secondary)
+                        }
+                    }
+
+                    Stepper(value: $maxDeletionsWithoutConfirmation, in: 1...100) {
+                        HStack {
+                            Label("Max Auto-Deletions", systemImage: "trash")
+                            Spacer()
+                            Text("\(maxDeletionsWithoutConfirmation) items")
+                                .foregroundColor(.secondary)
+                        }
+                    }
+
+                    Stepper(
+                        value: Binding(
+                            get: { timerInterval / 60 },
+                            set: { timerInterval = $0 * 60 }
+                        ), in: 1...60, step: 1
+                    ) {
+                        HStack {
+                            Label("Sync Interval", systemImage: "arrow.triangle.2.circlepath")
+                            Spacer()
+                            Text("\(Int(timerInterval / 60)) min")
+                                .foregroundColor(.secondary)
+                        }
+                    }
+
+                    Stepper(
+                        value: Binding(
+                            get: { requestAccessInterval / 60 },
+                            set: { requestAccessInterval = $0 * 60 }
+                        ), in: 1...60, step: 1
+                    ) {
+                        HStack {
+                            Label("Access Request Interval", systemImage: "lock.shield")
+                            Spacer()
+                            Text("\(Int(requestAccessInterval / 60)) min")
+                                .foregroundColor(.secondary)
+                        }
+                    }
+                } header: {
+                    Text("Sync Configuration")
+                }
+
+                Section {
+                    Stepper(value: $eventDurationMinutes, in: 5...1440, step: 5) {
+                        HStack {
+                            Label("Event Duration", systemImage: "clock")
+                            Spacer()
+                            Text("\(eventDurationMinutes) min")
+                                .foregroundColor(.secondary)
+                        }
+                    }
+
+                    Stepper(value: $alarmOffsetMinutes, in: 0...1440, step: 5) {
+                        HStack {
+                            Label("Alarm Offset", systemImage: "bell")
+                            Spacer()
+                            Text("\(alarmOffsetMinutes) min")
+                                .foregroundColor(.secondary)
+                        }
+                    }
+
+                    DatePicker(selection: $defaultTime, displayedComponents: .hourAndMinute) {
+                        Label("Default Time", systemImage: "clock.fill")
+                    }
+                } header: {
+                    Text("Event Defaults")
                 }
             }
-            .padding(.leading, 20)
-            .padding(.trailing, 20)
+            .formStyle(.grouped)
+
+            Divider()
+
             HStack {
-                Button("Cancel") {
+                Button("Cancel", role: .cancel) {
                     onCancel()
                 }
+                .keyboardShortcut(.cancelAction)
+
                 Spacer()
+
                 Button("Save") {
-                    appConfig.accountName = accountName
-                    appConfig.calendarName = calendarName
-                    appConfig.reminderListName = [reminderListName]
-                    appConfig.numberOfDaysForSearch = numberOfDaysForSearch
-                    appConfig.maxDeletionsWithoutConfirmation = maxDeletionsWithoutConfirmation
-                    appConfig.timerInterval = timerInterval
-                    appConfig.requestAccessInterval = requestAccessInterval
-                    appConfig.eventDurationMinutes = eventDurationMinutes
-                    appConfig.alarmOffsetMinutes = alarmOffsetMinutes
-                    appConfig.loginItemEnabled = loginItemEnabled
-                    appConfig.defaultHour = defaultHour
-                    appConfig.defaultMinute = defaultMinute
-                    appConfig.saveConfig()
-                    onSave()
+                    saveSettings()
                 }
+                .keyboardShortcut(.defaultAction)
+                .buttonStyle(.borderedProminent)
             }
             .padding()
+            .background(Color(nsColor: .windowBackgroundColor))
         }
+        .frame(width: 500, height: 600)
         .onAppear {
             NSEvent.addLocalMonitorForEvents(matching: .keyDown) { event in
-                if event.keyCode == 53 { // Key 53 = ESC code
+                if event.keyCode == 53 {  // Key 53 = ESC code
                     onCancel()
                     return nil
                 }
                 return event
             }
         }
+    }
+
+    private func saveSettings() {
+        appConfig.accountName = accountName
+        appConfig.calendarName = calendarName
+        appConfig.reminderListName = [reminderListName]
+        appConfig.numberOfDaysForSearch = numberOfDaysForSearch
+        appConfig.maxDeletionsWithoutConfirmation = maxDeletionsWithoutConfirmation
+        appConfig.timerInterval = timerInterval
+        appConfig.requestAccessInterval = requestAccessInterval
+        appConfig.eventDurationMinutes = eventDurationMinutes
+        appConfig.alarmOffsetMinutes = alarmOffsetMinutes
+        appConfig.loginItemEnabled = loginItemEnabled
+
+        let components = Calendar.current.dateComponents([.hour, .minute], from: defaultTime)
+        appConfig.defaultHour = components.hour ?? 9
+        appConfig.defaultMinute = components.minute ?? 0
+
+        appConfig.saveConfig()
+        onSave()
     }
 
     private func toggleLoginItem(_ isEnabled: Bool) {
