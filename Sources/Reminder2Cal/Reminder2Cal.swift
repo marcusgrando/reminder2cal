@@ -142,6 +142,9 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         settingsWindow?.setFrameAutosaveName("Settings")
         settingsWindow?.contentView = NSHostingView(rootView: settingsView)
 
+        // Enable key events
+        settingsWindow?.makeFirstResponder(settingsWindow?.contentView)
+
         // Configure window delegate to handle ESC key
         settingsWindowDelegate = SettingsWindowDelegate()
         settingsWindowDelegate?.onCancel = onCancelAction

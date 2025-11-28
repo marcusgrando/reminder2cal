@@ -1,11 +1,13 @@
 import AppConfig
 import Combine
+import EventKit
 import ServiceManagement
 import SwiftUI
 
 struct SettingsView: View {
-    @State private var accountName: String
+    @State private var calendarAccountName: String
     @State private var calendarName: String
+    @State private var reminderAccountName: String
     @State private var reminderListName: String
     @State private var numberOfDaysForSearch: Int
     @State private var maxDeletionsWithoutConfirmation: Int
@@ -13,19 +15,24 @@ struct SettingsView: View {
     @State private var requestAccessInterval: TimeInterval
     @State private var eventDurationMinutes: Int
     @State private var alarmOffsetMinutes: Int
-    @State private var reminderLists: [String]
     @State private var loginItemEnabled: Bool
     @State private var defaultTime: Date
-    @State private var accounts: [String]
+
+    @State private var calendarAccounts: [String]
     @State private var calendars: [String]
+    @State private var reminderAccounts: [String]
+    @State private var reminderLists: [String]
 
     @ObservedObject var appConfig: AppConfig
     var onSave: () -> Void
     var onCancel: () -> Void
 
+    private let eventStore = EKEventStore()
+
     init(appConfig: AppConfig, onSave: @escaping () -> Void, onCancel: @escaping () -> Void) {
-        self._accountName = State(initialValue: appConfig.accountName)
+        self._calendarAccountName = State(initialValue: appConfig.calendarAccountName)
         self._calendarName = State(initialValue: appConfig.calendarName)
+        self._reminderAccountName = State(initialValue: appConfig.reminderAccountName)
         self._reminderListName = State(initialValue: appConfig.reminderListName.first ?? "Inbox")
         self._numberOfDaysForSearch = State(initialValue: appConfig.numberOfDaysForSearch)
         self._maxDeletionsWithoutConfirmation = State(
@@ -34,7 +41,6 @@ struct SettingsView: View {
         self._requestAccessInterval = State(initialValue: appConfig.requestAccessInterval)
         self._eventDurationMinutes = State(initialValue: appConfig.eventDurationMinutes)
         self._alarmOffsetMinutes = State(initialValue: appConfig.alarmOffsetMinutes)
-        self._reminderLists = State(initialValue: ["Inbox", "Work", "Personal", "All"])
         self._loginItemEnabled = State(initialValue: appConfig.loginItemEnabled)
 
         // Initialize defaultTime from hour/minute
@@ -44,8 +50,10 @@ struct SettingsView: View {
         let date = Calendar.current.date(from: components) ?? Date()
         self._defaultTime = State(initialValue: date)
 
-        self._accounts = State(initialValue: ["iCloud", "Google", "Outlook"])
-        self._calendars = State(initialValue: ["Reminders", "Work", "Personal"])
+        self._calendarAccounts = State(initialValue: [])
+        self._calendars = State(initialValue: [])
+        self._reminderAccounts = State(initialValue: [])
+        self._reminderLists = State(initialValue: [])
         self.appConfig = appConfig
         self.onSave = onSave
         self.onCancel = onCancel
@@ -72,20 +80,12 @@ struct SettingsView: View {
                 }
 
                 Section {
-                    Picker(selection: $accountName) {
-                        ForEach(accounts, id: \.self) { account in
+                    Picker(selection: $reminderAccountName) {
+                        ForEach(reminderAccounts, id: \.self) { account in
                             Text(account)
                         }
                     } label: {
-                        Label("Account", systemImage: "person.crop.circle")
-                    }
-
-                    Picker(selection: $calendarName) {
-                        ForEach(calendars, id: \.self) { calendar in
-                            Text(calendar)
-                        }
-                    } label: {
-                        Label("Calendar", systemImage: "calendar")
+                        Label("Reminder Account", systemImage: "person.crop.circle")
                     }
 
                     Picker(selection: $reminderListName) {
@@ -96,7 +96,27 @@ struct SettingsView: View {
                         Label("Reminder List", systemImage: "list.bullet")
                     }
                 } header: {
-                    Text("Accounts & Sources")
+                    Text("Reminder Source")
+                }
+
+                Section {
+                    Picker(selection: $calendarAccountName) {
+                        ForEach(calendarAccounts, id: \.self) { account in
+                            Text(account)
+                        }
+                    } label: {
+                        Label("Calendar Account", systemImage: "person.crop.circle")
+                    }
+
+                    Picker(selection: $calendarName) {
+                        ForEach(calendars, id: \.self) { calendar in
+                            Text(calendar)
+                        }
+                    } label: {
+                        Label("Calendar", systemImage: "calendar")
+                    }
+                } header: {
+                    Text("Calendar Destination")
                 }
 
                 Section {
@@ -197,21 +217,104 @@ struct SettingsView: View {
             .background(Color(nsColor: .windowBackgroundColor))
         }
         .frame(width: 500, height: 600)
+        .onAppear {
+            loadCalendarAccounts()
+            loadCalendars()
+            loadReminderAccounts()
+            loadReminderLists()
+        }
+        .onChange(of: calendarAccountName) { _, _ in
+            loadCalendars()
+        }
+        .onChange(of: reminderAccountName) { _, _ in
+            loadReminderLists()
+        }
         .onExitCommand {
             onCancel()
         }
     }
 
+    private func loadCalendarAccounts() {
+        var accountNames = Set<String>()
+
+        // Get accounts from calendars
+        let allCalendars = eventStore.calendars(for: .event)
+        for calendar in allCalendars {
+            if let source = calendar.source {
+                accountNames.insert(source.title)
+            }
+        }
+
+        calendarAccounts = Array(accountNames).sorted()
+
+        // If current account doesn't exist, select first available
+        if !calendarAccounts.contains(calendarAccountName) && !calendarAccounts.isEmpty {
+            calendarAccountName = calendarAccounts[0]
+        }
+    }
+
+    private func loadCalendars() {
+        let allCalendars = eventStore.calendars(for: .event)
+        let filteredCalendars = allCalendars.filter { calendar in
+            calendar.source?.title == calendarAccountName
+        }
+
+        calendars = filteredCalendars.map { $0.title }.sorted()
+
+        // If current calendar doesn't exist in selected account, select first available
+        if !calendars.contains(calendarName) && !calendars.isEmpty {
+            calendarName = calendars[0]
+        }
+    }
+
+    private func loadReminderAccounts() {
+        var accountNames = Set<String>()
+
+        // Get accounts from reminder lists
+        let allReminderLists = eventStore.calendars(for: .reminder)
+        for list in allReminderLists {
+            if let source = list.source {
+                accountNames.insert(source.title)
+            }
+        }
+
+        reminderAccounts = Array(accountNames).sorted()
+
+        // If current account doesn't exist, select first available
+        if !reminderAccounts.contains(reminderAccountName) && !reminderAccounts.isEmpty {
+            reminderAccountName = reminderAccounts[0]
+        }
+    }
+
+    private func loadReminderLists() {
+        let allLists = eventStore.calendars(for: .reminder)
+        let filteredLists = allLists.filter { list in
+            list.source?.title == reminderAccountName
+        }
+
+        reminderLists = filteredLists.map { $0.title }.sorted()
+
+        // If current reminder list doesn't exist in selected account, select first available
+        if !reminderLists.contains(reminderListName) && !reminderLists.isEmpty {
+            reminderListName = reminderLists[0]
+        }
+    }
+
     private func saveSettings() {
-        if appConfig.accountName != accountName {
+        if appConfig.calendarAccountName != calendarAccountName {
             appConfig.logger?(
-                "Setting changed: Account from '\(appConfig.accountName)' to '\(accountName)'")
-            appConfig.accountName = accountName
+                "Setting changed: Calendar Account from '\(appConfig.calendarAccountName)' to '\(calendarAccountName)'")
+            appConfig.calendarAccountName = calendarAccountName
         }
         if appConfig.calendarName != calendarName {
             appConfig.logger?(
                 "Setting changed: Calendar from '\(appConfig.calendarName)' to '\(calendarName)'")
             appConfig.calendarName = calendarName
+        }
+        if appConfig.reminderAccountName != reminderAccountName {
+            appConfig.logger?(
+                "Setting changed: Reminder Account from '\(appConfig.reminderAccountName)' to '\(reminderAccountName)'")
+            appConfig.reminderAccountName = reminderAccountName
         }
         if appConfig.reminderListName.first != reminderListName {
             appConfig.logger?(

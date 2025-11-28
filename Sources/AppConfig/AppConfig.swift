@@ -1,8 +1,9 @@
 import SwiftUI
 
 public class AppConfig: ObservableObject {
-    @Published public var accountName: String
+    @Published public var calendarAccountName: String
     @Published public var calendarName: String
+    @Published public var reminderAccountName: String
     @Published public var reminderListName: [String]
     @Published public var numberOfDaysForSearch: Int
     @Published public var maxDeletionsWithoutConfirmation: Int
@@ -14,12 +15,20 @@ public class AppConfig: ObservableObject {
     @Published public var defaultHour: Int
     @Published public var defaultMinute: Int
 
+    // Legacy support - kept for backward compatibility
+    public var accountName: String {
+        get { calendarAccountName }
+        set { calendarAccountName = newValue }
+    }
+
     public var logger: ((String) -> Void)?
 
     public init() {
         let config = AppConfig.loadConfig()
-        self.accountName = config["accountName"] as? String ?? "iCloud"
+        // Try new keys first, fallback to legacy key for backward compatibility
+        self.calendarAccountName = config["calendarAccountName"] as? String ?? config["accountName"] as? String ?? "iCloud"
         self.calendarName = config["calendarName"] as? String ?? "Reminders"
+        self.reminderAccountName = config["reminderAccountName"] as? String ?? config["accountName"] as? String ?? "iCloud"
         self.reminderListName = config["reminderListName"] as? [String] ?? ["Inbox"]
         self.numberOfDaysForSearch = config["numberOfDaysForSearch"] as? Int ?? 14
         self.maxDeletionsWithoutConfirmation =
@@ -83,8 +92,9 @@ public class AppConfig: ObservableObject {
         let configFile = appDirectory.appendingPathComponent("Config.plist")
 
         let config: [String: Any] = [
-            "accountName": self.accountName,
+            "calendarAccountName": self.calendarAccountName,
             "calendarName": self.calendarName,
+            "reminderAccountName": self.reminderAccountName,
             "reminderListName": self.reminderListName,
             "numberOfDaysForSearch": self.numberOfDaysForSearch,
             "maxDeletionsWithoutConfirmation": self.maxDeletionsWithoutConfirmation,
