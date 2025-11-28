@@ -209,20 +209,76 @@ struct SettingsView: View {
     }
 
     private func saveSettings() {
-        appConfig.accountName = accountName
-        appConfig.calendarName = calendarName
-        appConfig.reminderListName = [reminderListName]
-        appConfig.numberOfDaysForSearch = numberOfDaysForSearch
-        appConfig.maxDeletionsWithoutConfirmation = maxDeletionsWithoutConfirmation
-        appConfig.timerInterval = timerInterval
-        appConfig.requestAccessInterval = requestAccessInterval
-        appConfig.eventDurationMinutes = eventDurationMinutes
-        appConfig.alarmOffsetMinutes = alarmOffsetMinutes
-        appConfig.loginItemEnabled = loginItemEnabled
+        if appConfig.accountName != accountName {
+            appConfig.logger?(
+                "Setting changed: Account from '\(appConfig.accountName)' to '\(accountName)'")
+            appConfig.accountName = accountName
+        }
+        if appConfig.calendarName != calendarName {
+            appConfig.logger?(
+                "Setting changed: Calendar from '\(appConfig.calendarName)' to '\(calendarName)'")
+            appConfig.calendarName = calendarName
+        }
+        if appConfig.reminderListName.first != reminderListName {
+            appConfig.logger?(
+                "Setting changed: Reminder List from '\(appConfig.reminderListName.first ?? "")' to '\(reminderListName)'"
+            )
+            appConfig.reminderListName = [reminderListName]
+        }
+        if appConfig.numberOfDaysForSearch != numberOfDaysForSearch {
+            appConfig.logger?(
+                "Setting changed: Search Range from '\(appConfig.numberOfDaysForSearch)' to '\(numberOfDaysForSearch)'"
+            )
+            appConfig.numberOfDaysForSearch = numberOfDaysForSearch
+        }
+        if appConfig.maxDeletionsWithoutConfirmation != maxDeletionsWithoutConfirmation {
+            appConfig.logger?(
+                "Setting changed: Max Auto-Deletions from '\(appConfig.maxDeletionsWithoutConfirmation)' to '\(maxDeletionsWithoutConfirmation)'"
+            )
+            appConfig.maxDeletionsWithoutConfirmation = maxDeletionsWithoutConfirmation
+        }
+        if appConfig.timerInterval != timerInterval {
+            appConfig.logger?(
+                "Setting changed: Sync Interval from '\(appConfig.timerInterval)' to '\(timerInterval)'"
+            )
+            appConfig.timerInterval = timerInterval
+        }
+        if appConfig.requestAccessInterval != requestAccessInterval {
+            appConfig.logger?(
+                "Setting changed: Access Request Interval from '\(appConfig.requestAccessInterval)' to '\(requestAccessInterval)'"
+            )
+            appConfig.requestAccessInterval = requestAccessInterval
+        }
+        if appConfig.eventDurationMinutes != eventDurationMinutes {
+            appConfig.logger?(
+                "Setting changed: Event Duration from '\(appConfig.eventDurationMinutes)' to '\(eventDurationMinutes)'"
+            )
+            appConfig.eventDurationMinutes = eventDurationMinutes
+        }
+        if appConfig.alarmOffsetMinutes != alarmOffsetMinutes {
+            appConfig.logger?(
+                "Setting changed: Alarm Offset from '\(appConfig.alarmOffsetMinutes)' to '\(alarmOffsetMinutes)'"
+            )
+            appConfig.alarmOffsetMinutes = alarmOffsetMinutes
+        }
+        if appConfig.loginItemEnabled != loginItemEnabled {
+            appConfig.logger?(
+                "Setting changed: Start with Login from '\(appConfig.loginItemEnabled)' to '\(loginItemEnabled)'"
+            )
+            appConfig.loginItemEnabled = loginItemEnabled
+        }
 
         let components = Calendar.current.dateComponents([.hour, .minute], from: defaultTime)
-        appConfig.defaultHour = components.hour ?? 9
-        appConfig.defaultMinute = components.minute ?? 0
+        let newHour = components.hour ?? 9
+        let newMinute = components.minute ?? 0
+
+        if appConfig.defaultHour != newHour || appConfig.defaultMinute != newMinute {
+            appConfig.logger?(
+                "Setting changed: Default Time from '\(String(format: "%02d:%02d", appConfig.defaultHour, appConfig.defaultMinute))' to '\(String(format: "%02d:%02d", newHour, newMinute))'"
+            )
+            appConfig.defaultHour = newHour
+            appConfig.defaultMinute = newMinute
+        }
 
         appConfig.saveConfig()
         onSave()

@@ -15,7 +15,7 @@
     <key>LSBackgroundOnly</key>
     <true/>
     <key>CFBundleIconFile</key>
-    <string>icon</string>
+    <string>icon.icns</string>
     <key>NSCalendarsUsageDescription</key>
     <string>Access to Calendar is required to sync reminders.</string>
     <key>NSRemindersUsageDescription</key>
