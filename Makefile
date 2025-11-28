@@ -1,23 +1,191 @@
-SWIFT = swift build
-FLAGS = --configuration release
-OUTPUT = .build/release/Reminder2Cal
+# ============================================================================
+# Reminder2Cal - macOS Application Build System
+# ============================================================================
 
-all: $(OUTPUT)
+# Version Management (single source of truth)
+VERSION := $(shell cat VERSION 2>/dev/null || echo "1.0.0")
+BUILD_NUMBER := $(shell git rev-list --count HEAD 2>/dev/null || echo "0")
 
-$(OUTPUT):
-	$(SWIFT) $(FLAGS)
-	mkdir -p Reminder2Cal.app/Contents/MacOS Reminder2Cal.app/Contents/Resources/
-	cp Info.plist Reminder2Cal.app/Contents/
-	cp icon.icns Reminder2Cal.app/Contents/Resources/
-	cp reminder2cal.svg Reminder2Cal.app/Contents/Resources/
-	xattr -c Reminder2Cal.app/Contents/Resources/icon.icns
-	xcrun actool --output-format human-readable-text --notices --warnings --platform macosx --minimum-deployment-target 13.0 --compile Reminder2Cal.app/Contents/Resources/ Assets.xcassets
-	cp $(OUTPUT) Reminder2Cal.app/Contents/MacOS/Reminder2Cal
-	codesign --force --verify --verbose --sign "Developer ID Application: Marcus Nestor Alves Grando (MY427949GW)" Reminder2Cal.app
-	touch Reminder2Cal.app
+# Build Configuration
+SWIFT := swift build
+BUILD_CONFIG := release
+SWIFT_FLAGS := --configuration $(BUILD_CONFIG)
+MIN_MACOS_VERSION := 13.0
 
-clean:
-	rm -rf Reminder2Cal.app .build
-	pkill Reminder2Cal
+# Paths
+BUILD_DIR := .build/$(BUILD_CONFIG)
+EXECUTABLE := $(BUILD_DIR)/Reminder2Cal
+APP_BUNDLE := Reminder2Cal.app
+APP_CONTENTS := $(APP_BUNDLE)/Contents
+APP_MACOS := $(APP_CONTENTS)/MacOS
+APP_RESOURCES := $(APP_CONTENTS)/Resources
 
-.PHONY: all clean
+# Code Signing
+SIGNING_IDENTITY := "Developer ID Application: Marcus Nestor Alves Grando (MY427949GW)"
+
+# Colors for output
+BLUE := \033[0;34m
+GREEN := \033[0;32m
+YELLOW := \033[0;33m
+RED := \033[0;31m
+NC := \033[0m # No Color
+
+# ============================================================================
+# Main Targets
+# ============================================================================
+
+.PHONY: all build app clean install run test help version
+
+all: app ## Build the complete application bundle (default target)
+
+help: ## Show this help message
+	@echo "$(BLUE)Reminder2Cal Build System$(NC)"
+	@echo "Version: $(VERSION) (Build $(BUILD_NUMBER))"
+	@echo ""
+	@echo "$(GREEN)Available targets:$(NC)"
+	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  $(YELLOW)%-15s$(NC) %s\n", $$1, $$2}'
+
+version: ## Display current version
+	@echo "Version: $(VERSION)"
+	@echo "Build: $(BUILD_NUMBER)"
+
+# ============================================================================
+# Build Targets
+# ============================================================================
+
+build: ## Build the Swift executable
+	@echo "$(BLUE)Building Reminder2Cal $(VERSION)...$(NC)"
+	$(SWIFT) $(SWIFT_FLAGS)
+	@echo "$(GREEN)✓ Build complete$(NC)"
+
+app: $(EXECUTABLE) ## Create the .app bundle
+	@echo "$(BLUE)Creating application bundle...$(NC)"
+	@$(MAKE) -s create-bundle
+	@$(MAKE) -s copy-resources
+	@$(MAKE) -s update-info-plist
+	@$(MAKE) -s compile-assets
+	@$(MAKE) -s copy-executable
+	@$(MAKE) -s sign-app
+	@touch $(APP_BUNDLE)
+	@echo "$(GREEN)✓ Application bundle created: $(APP_BUNDLE)$(NC)"
+
+create-bundle:
+	@mkdir -p $(APP_MACOS) $(APP_RESOURCES)
+
+copy-resources:
+	@echo "  → Copying resources..."
+	@cp icon.icns $(APP_RESOURCES)/
+	@cp reminder2cal.svg $(APP_RESOURCES)/
+	@xattr -c $(APP_RESOURCES)/icon.icns 2>/dev/null || true
+
+update-info-plist:
+	@echo "  → Updating Info.plist with version $(VERSION)..."
+	@cp Info.plist $(APP_CONTENTS)/
+	@/usr/libexec/PlistBuddy -c "Set :CFBundleShortVersionString $(VERSION)" $(APP_CONTENTS)/Info.plist 2>/dev/null || \
+		/usr/libexec/PlistBuddy -c "Add :CFBundleShortVersionString string $(VERSION)" $(APP_CONTENTS)/Info.plist
+	@/usr/libexec/PlistBuddy -c "Set :CFBundleVersion $(BUILD_NUMBER)" $(APP_CONTENTS)/Info.plist
+
+compile-assets:
+	@echo "  → Compiling asset catalog..."
+	@xcrun actool \
+		--output-format human-readable-text \
+		--notices --warnings \
+		--platform macosx \
+		--minimum-deployment-target $(MIN_MACOS_VERSION) \
+		--compile $(APP_RESOURCES)/ \
+		Assets.xcassets 2>/dev/null || true
+
+copy-executable:
+	@echo "  → Copying executable..."
+	@cp $(EXECUTABLE) $(APP_MACOS)/Reminder2Cal
+
+sign-app:
+	@echo "  → Code signing..."
+	@codesign --force --verify --verbose --sign $(SIGNING_IDENTITY) $(APP_BUNDLE) 2>&1 | grep -v "replacing existing signature" || true
+
+# ============================================================================
+# Development Targets
+# ============================================================================
+
+run: app ## Build and run the application
+	@echo "$(BLUE)Starting Reminder2Cal...$(NC)"
+	@open $(APP_BUNDLE)
+
+debug: ## Build in debug mode
+	@echo "$(BLUE)Building in debug mode...$(NC)"
+	@swift build --configuration debug
+	@echo "$(GREEN)✓ Debug build complete$(NC)"
+
+test: ## Run tests
+	@echo "$(BLUE)Running tests...$(NC)"
+	@swift test
+
+clean: ## Clean build artifacts
+	@echo "$(YELLOW)Cleaning build artifacts...$(NC)"
+	@rm -rf $(APP_BUNDLE) .build
+	@pkill Reminder2Cal 2>/dev/null || true
+	@echo "$(GREEN)✓ Clean complete$(NC)"
+
+install: app ## Install the app to /Applications
+	@echo "$(BLUE)Installing to /Applications...$(NC)"
+	@rm -rf /Applications/$(APP_BUNDLE)
+	@cp -R $(APP_BUNDLE) /Applications/
+	@echo "$(GREEN)✓ Installed to /Applications/$(APP_BUNDLE)$(NC)"
+
+uninstall: ## Uninstall the app from /Applications
+	@echo "$(YELLOW)Uninstalling from /Applications...$(NC)"
+	@rm -rf /Applications/$(APP_BUNDLE)
+	@pkill Reminder2Cal 2>/dev/null || true
+	@echo "$(GREEN)✓ Uninstalled$(NC)"
+
+# ============================================================================
+# Release Management
+# ============================================================================
+
+bump-patch: ## Bump patch version (1.0.0 -> 1.0.1)
+	@echo "$(BLUE)Bumping patch version...$(NC)"
+	@$(eval NEW_VERSION := $(shell echo $(VERSION) | awk -F. '{print $$1"."$$2"."$$3+1}'))
+	@echo $(NEW_VERSION) > VERSION
+	@echo "$(GREEN)Version updated: $(VERSION) → $(NEW_VERSION)$(NC)"
+	@echo "Don't forget to commit the VERSION file!"
+
+bump-minor: ## Bump minor version (1.0.0 -> 1.1.0)
+	@echo "$(BLUE)Bumping minor version...$(NC)"
+	@$(eval NEW_VERSION := $(shell echo $(VERSION) | awk -F. '{print $$1"."$$2+1".0"}'))
+	@echo $(NEW_VERSION) > VERSION
+	@echo "$(GREEN)Version updated: $(VERSION) → $(NEW_VERSION)$(NC)"
+	@echo "Don't forget to commit the VERSION file!"
+
+bump-major: ## Bump major version (1.0.0 -> 2.0.0)
+	@echo "$(BLUE)Bumping major version...$(NC)"
+	@$(eval NEW_VERSION := $(shell echo $(VERSION) | awk -F. '{print $$1+1".0.0"}'))
+	@echo $(NEW_VERSION) > VERSION
+	@echo "$(GREEN)Version updated: $(VERSION) → $(NEW_VERSION)$(NC)"
+	@echo "Don't forget to commit the VERSION file!"
+
+# ============================================================================
+# Info Targets
+# ============================================================================
+
+info: ## Show build information
+	@echo "$(BLUE)Build Information:$(NC)"
+	@echo "  Version:           $(VERSION)"
+	@echo "  Build Number:      $(BUILD_NUMBER)"
+	@echo "  Configuration:     $(BUILD_CONFIG)"
+	@echo "  macOS Target:      $(MIN_MACOS_VERSION)+"
+	@echo "  Swift:             $(shell swift --version | head -n 1)"
+	@echo "  Signing Identity:  $(SIGNING_IDENTITY)"
+	@echo "  App Bundle:        $(APP_BUNDLE)"
+
+check-deps: ## Check for required dependencies
+	@echo "$(BLUE)Checking dependencies...$(NC)"
+	@command -v swift >/dev/null 2>&1 || { echo "$(RED)✗ Swift not found$(NC)"; exit 1; }
+	@command -v xcrun >/dev/null 2>&1 || { echo "$(RED)✗ Xcode command line tools not found$(NC)"; exit 1; }
+	@command -v codesign >/dev/null 2>&1 || { echo "$(RED)✗ codesign not found$(NC)"; exit 1; }
+	@echo "$(GREEN)✓ All dependencies found$(NC)"
+
+# ============================================================================
+# Special Targets
+# ============================================================================
+
+.DEFAULT_GOAL := all
