@@ -7,6 +7,8 @@ public class Reminder2CalSync {
     private var appConfig: AppConfig
 
     private var logger: (String) -> Void
+    public private(set) var isMakingChanges = false
+    private var lastCommitTime: Date?
 
     public init(
         appConfig: AppConfig, logger: @escaping (String) -> Void = { NSLog($0) },
@@ -81,11 +83,12 @@ public class Reminder2CalSync {
         }
     }
 
-    public func performSync() {
+    public func performSync(completion: (() -> Void)? = nil) {
         self.logger("Starting synchronization process...")
         requestCalendarAccess { [weak self] granted in
             guard let self = self, granted else {
                 self?.logger("Synchronization aborted: Calendar access not granted")
+                completion?()
                 return
             }
 
@@ -107,6 +110,7 @@ public class Reminder2CalSync {
                         message:
                             "Calendar '\(self.appConfig.calendarName)' not found in account '\(self.appConfig.accountName)'."
                     )
+                    completion?()
                     return
                 }
 
@@ -138,6 +142,29 @@ public class Reminder2CalSync {
                     if !reminderKeys.contains(eventKey) {
                         eventsToRemove.append(event)
                     }
+                }
+
+                // Check if we'll need to create any new events
+                var willCreateEvents = false
+                for reminder in reminders {
+                    if let reminderDate = reminder.dueDateComponents?.date {
+                        let reminderKey =
+                            "\(reminder.title ?? "") [\(reminder.calendar.title)]|\(dateFormatter.string(from: reminderDate))|\(reminder.notes ?? "")|\(reminder.isCompleted)"
+                        if !events.contains(where: { event in
+                            let eventKey =
+                                "\(event.title ?? "")|\(dateFormatter.string(from: event.startDate))|\(event.notes ?? "")|\((event.alarms?.isEmpty == true))"
+                            return eventKey == reminderKey
+                        }) {
+                            willCreateEvents = true
+                            break
+                        }
+                    }
+                }
+
+                // Set flag BEFORE making any changes
+                if eventsToRemove.count > 0 || willCreateEvents {
+                    self.isMakingChanges = true
+                    self.lastCommitTime = Date()
                 }
 
                 if eventsToRemove.count > 0 {
@@ -188,13 +215,20 @@ public class Reminder2CalSync {
                     do {
                         try self.eventStore.commit()
                         self.logger("All changes saved successfully to EventStore")
+
+                        // Reset flag after delay - long enough to catch all related notifications
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 3.0) { [weak self] in
+                            self?.isMakingChanges = false
+                        }
                     } catch {
                         self.logger("Error saving changes to EventStore: \(error.localizedDescription)")
+                        self.isMakingChanges = false
                     }
                 } else {
                     self.logger("Calendar is already up to date - no changes needed")
                 }
                 self.logger("Synchronization completed")
+                completion?()
             }
         }
     }
@@ -257,6 +291,7 @@ public class Reminder2CalSync {
 
     private func removeEvent(_ event: EKEvent) {
         do {
+
             let dateFormatter = DateFormatter()
             dateFormatter.dateFormat = "yyyy-MM-dd HH:mm"
             let dateStr = dateFormatter.string(from: event.startDate)

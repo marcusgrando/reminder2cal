@@ -25,6 +25,12 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     var aboutWindow: NSWindow?
     var settingsWindowDelegate: SettingsWindowDelegate?
 
+    // Sync control
+    private var isSyncing = false
+    private var syncDebounceTimer: Timer?
+    private let syncDebounceInterval: TimeInterval = 1.5
+    private var lastNotificationHash: Int?
+
     func applicationDidFinishLaunching(_ aNotification: Notification) {
         NSApp.setActivationPolicy(.accessory)
 
@@ -176,16 +182,49 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     @objc func eventStoreChanged(notification: Notification) {
-        let reminderCalendars = eventStore.calendars(for: .reminder).filter {
-            appConfig.reminderListName.contains($0.title)
-                && $0.source.title == appConfig.accountName
+        // Ignore changes made by our own sync
+        guard syncManager?.isMakingChanges != true else {
+            return
         }
 
-        for calendar in reminderCalendars {
-            if eventStore.calendar(withIdentifier: calendar.calendarIdentifier) != nil {
-                syncRemindersWithCalendar()
-                break
+        // Create a hash of the notification to detect duplicates
+        // We use a combination of userInfo and timestamp rounded to 100ms
+        let timeHash = Int(Date().timeIntervalSince1970 * 10)  // Round to 100ms
+        var notificationHash = timeHash
+
+        // Add userInfo to hash if available
+        if let userInfo = notification.userInfo {
+            let userInfoString = String(describing: userInfo)
+            notificationHash = notificationHash ^ userInfoString.hashValue
+        }
+
+        // Check if this is a duplicate notification (same hash within a short time)
+        if let lastHash = lastNotificationHash, lastHash == notificationHash {
+            return
+        }
+
+        lastNotificationHash = notificationHash
+        Logger.shared.log("EventStore change detected, scheduling sync...")
+
+        // Debounce: Cancel any pending sync and schedule a new one
+        syncDebounceTimer?.invalidate()
+        syncDebounceTimer = Timer.scheduledTimer(withTimeInterval: syncDebounceInterval, repeats: false) { [weak self] _ in
+            guard let self = self else { return }
+
+            let reminderCalendars = self.eventStore.calendars(for: .reminder).filter {
+                self.appConfig.reminderListName.contains($0.title)
+                    && $0.source.title == self.appConfig.accountName
             }
+
+            for calendar in reminderCalendars {
+                if self.eventStore.calendar(withIdentifier: calendar.calendarIdentifier) != nil {
+                    self.syncRemindersWithCalendar()
+                    break
+                }
+            }
+
+            // Clear the hash after processing to allow future legitimate notifications
+            self.lastNotificationHash = nil
         }
     }
 
@@ -196,7 +235,19 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     @objc func syncRemindersWithCalendar() {
-        self.syncManager?.performSync()
+        // Prevent concurrent syncs
+        guard !isSyncing else {
+            Logger.shared.log("Sync already in progress, skipping duplicate request")
+            return
+        }
+
+        isSyncing = true
+        self.syncManager?.performSync { [weak self] in
+            // Reset sync flag when sync completes
+            DispatchQueue.main.async {
+                self?.isSyncing = false
+            }
+        }
     }
 
     func startSyncTimer() {
