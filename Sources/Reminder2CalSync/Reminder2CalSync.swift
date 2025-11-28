@@ -82,10 +82,10 @@ public class Reminder2CalSync {
     }
 
     public func performSync() {
-        self.logger("Sync started")
+        self.logger("Starting synchronization process...")
         requestCalendarAccess { [weak self] granted in
             guard let self = self, granted else {
-                self?.logger("Sync aborted: Calendar access denied")
+                self?.logger("Synchronization aborted: Calendar access not granted")
                 return
             }
 
@@ -102,7 +102,7 @@ public class Reminder2CalSync {
                             && $0.source.title == self.appConfig.accountName
                     })
                 else {
-                    self.logger("Sync failed: Calendar '\(self.appConfig.calendarName)' not found")
+                    self.logger("Synchronization failed: Could not find calendar '\(self.appConfig.calendarName)' in account '\(self.appConfig.accountName)'")
                     self.showSyncAlert(
                         message:
                             "Calendar '\(self.appConfig.calendarName)' not found in account '\(self.appConfig.accountName)'."
@@ -112,7 +112,7 @@ public class Reminder2CalSync {
 
                 let events = self.fetchEvents(in: calendar, startDate: startDate, endDate: endDate)
                 self.logger(
-                    "Fetched number of Calendar: \(events.count) and number of reminders: \(reminders.count)"
+                    "Found \(events.count) existing events in calendar '\(calendar.title)' and \(reminders.count) reminders to sync from account '\(self.appConfig.accountName)'"
                 )
 
                 let dateFormatter = DateFormatter()
@@ -153,7 +153,7 @@ public class Reminder2CalSync {
                             let response = alert.runModal()
                             if response == .alertFirstButtonReturn {
                                 self.logger(
-                                    "Sync aborted: User denied deletion of \(eventsToRemove.count) events"
+                                    "Synchronization cancelled: User declined to delete \(eventsToRemove.count) events"
                                 )
                                 NSApp.terminate(nil)
                             } else {
@@ -187,14 +187,14 @@ public class Reminder2CalSync {
                 if changesMade {
                     do {
                         try self.eventStore.commit()
-                        self.logger("Changes committed to the event store.")
+                        self.logger("All changes saved successfully to EventStore")
                     } catch {
-                        self.logger("Failed to commit changes: \(error.localizedDescription)")
+                        self.logger("Error saving changes to EventStore: \(error.localizedDescription)")
                     }
                 } else {
-                    self.logger("No changes detected")
+                    self.logger("Calendar is already up to date - no changes needed")
                 }
-                self.logger("Sync finished")
+                self.logger("Synchronization completed")
             }
         }
     }
@@ -245,19 +245,36 @@ public class Reminder2CalSync {
                 EKAlarm(relativeOffset: TimeInterval(-appConfig.alarmOffsetMinutes * 60)))
         }
         saveEvent(event)
+
+        let dateFormatter = DateFormatter()
+        dateFormatter.dateFormat = "yyyy-MM-dd HH:mm"
+        let dateStr = dateFormatter.string(from: event.startDate)
+
         self.logger(
-            "Created event: \(event.title ?? "") at \(String(describing: event.startDate)) with notes: \(event.notes ?? "")"
+            "  Created event in '\(calendar.title)': \"\(reminder.title ?? "")\" [from '\(reminder.calendar.title)'] | \(dateStr) | Notes: \(event.notes ?? "none") | Alarm: \(!reminder.isCompleted ? "yes" : "no")"
         )
     }
 
     private func removeEvent(_ event: EKEvent) {
         do {
+            let dateFormatter = DateFormatter()
+            dateFormatter.dateFormat = "yyyy-MM-dd HH:mm"
+            let dateStr = dateFormatter.string(from: event.startDate)
+
+            // Extract reminder list name from title (format: "Title [ReminderList]")
+            var displayTitle = event.title ?? ""
+            var reminderListName = "unknown"
+            if let match = displayTitle.range(of: "\\[(.+?)\\]$", options: .regularExpression) {
+                reminderListName = String(displayTitle[match]).replacingOccurrences(of: "[", with: "").replacingOccurrences(of: "]", with: "")
+                displayTitle = displayTitle.replacingOccurrences(of: " \(displayTitle[match])", with: "")
+            }
+
             try eventStore.remove(event, span: .thisEvent)
             self.logger(
-                "Removed event: \(event.title ?? "") at \(String(describing: event.startDate)) with notes: \(event.notes ?? "")"
+                "  Deleted event from '\(event.calendar?.title ?? "unknown")': \"\(displayTitle)\" [from '\(reminderListName)'] | \(dateStr) | Notes: \(event.notes ?? "none")"
             )
         } catch {
-            self.logger("Failed to remove event: \(error.localizedDescription)")
+            self.logger("  Error deleting event '\(event.title ?? "")': \(error.localizedDescription)")
         }
     }
 
@@ -271,7 +288,7 @@ public class Reminder2CalSync {
         do {
             try eventStore.save(event, span: .thisEvent)
         } catch {
-            self.logger("Failed to save event: \(error.localizedDescription)")
+            self.logger("  Error creating event '\(event.title ?? "")': \(error.localizedDescription)")
         }
     }
 

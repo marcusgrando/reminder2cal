@@ -58,6 +58,9 @@ build: ## Build the Swift executable
 	$(SWIFT) $(SWIFT_FLAGS)
 	@echo "$(GREEN)✓ Build complete$(NC)"
 
+$(EXECUTABLE):
+	@$(MAKE) -s build
+
 app: $(EXECUTABLE) ## Create the .app bundle
 	@echo "$(BLUE)Creating application bundle...$(NC)"
 	@$(MAKE) -s create-bundle

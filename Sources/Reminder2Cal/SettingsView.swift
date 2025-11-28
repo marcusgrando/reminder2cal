@@ -183,28 +183,22 @@ struct SettingsView: View {
                 Button("Cancel", role: .cancel) {
                     onCancel()
                 }
-                .keyboardShortcut(.cancelAction)
+                .keyboardShortcut(.escape)
 
                 Spacer()
 
                 Button("Save") {
                     saveSettings()
                 }
-                .keyboardShortcut(.defaultAction)
+                .keyboardShortcut("s", modifiers: .command)
                 .buttonStyle(.borderedProminent)
             }
             .padding()
             .background(Color(nsColor: .windowBackgroundColor))
         }
         .frame(width: 500, height: 600)
-        .onAppear {
-            NSEvent.addLocalMonitorForEvents(matching: .keyDown) { event in
-                if event.keyCode == 53 {  // Key 53 = ESC code
-                    onCancel()
-                    return nil
-                }
-                return event
-            }
+        .onExitCommand {
+            onCancel()
         }
     }
 
@@ -281,7 +275,6 @@ struct SettingsView: View {
         }
 
         appConfig.saveConfig()
-        onSave()
     }
 
     private func toggleLoginItem(_ isEnabled: Bool) {

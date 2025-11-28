@@ -5,6 +5,15 @@ import Reminder2CalSync
 import ServiceManagement
 import SwiftUI
 
+class SettingsWindowDelegate: NSObject, NSWindowDelegate {
+    var onCancel: (() -> Void)?
+
+    func windowShouldClose(_ sender: NSWindow) -> Bool {
+        onCancel?()
+        return true
+    }
+}
+
 class AppDelegate: NSObject, NSApplicationDelegate {
     let eventStore = EKEventStore()
     var timer: Timer?
@@ -14,6 +23,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     var syncManager: Reminder2CalSync?
     var settingsWindow: NSWindow?
     var aboutWindow: NSWindow?
+    var settingsWindowDelegate: SettingsWindowDelegate?
 
     func applicationDidFinishLaunching(_ aNotification: Notification) {
         NSApp.setActivationPolicy(.accessory)
@@ -104,18 +114,19 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     func createSettingsWindow() {
+        let onCancelAction = { [weak self] in
+            Logger.shared.log("Settings cancelled")
+            self?.settingsWindow?.close()
+            self?.settingsWindow = nil
+        }
+
         let settingsView = SettingsView(
             appConfig: appConfig,
-            onSave: { [weak self] in
+            onSave: {
                 Logger.shared.log("Settings saved")
-                self?.settingsWindow?.close()
-                self?.settingsWindow = nil
             },
-            onCancel: { [weak self] in
-                Logger.shared.log("Settings cancelled")
-                self?.settingsWindow?.close()
-                self?.settingsWindow = nil
-            })
+            onCancel: onCancelAction)
+
         settingsWindow = NSWindow(
             contentRect: NSRect(x: 0, y: 0, width: 450, height: 700),
             styleMask: [.titled, .closable, .miniaturizable],
@@ -124,6 +135,11 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         settingsWindow?.center()
         settingsWindow?.setFrameAutosaveName("Settings")
         settingsWindow?.contentView = NSHostingView(rootView: settingsView)
+
+        // Configure window delegate to handle ESC key
+        settingsWindowDelegate = SettingsWindowDelegate()
+        settingsWindowDelegate?.onCancel = onCancelAction
+        settingsWindow?.delegate = settingsWindowDelegate
 
         // Adiciona observador para o evento de fechamento da janela
         NotificationCenter.default.addObserver(
