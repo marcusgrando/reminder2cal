@@ -17,6 +17,10 @@ let package = Package(
             name: "Reminder2Cal",
             targets: ["Reminder2Cal"]
         ),
+        .library(
+            name: "Reminder2CalCore",
+            targets: ["Reminder2CalCore"]
+        )
     ],
 
     // Dependencies declare other packages that this package depends on
@@ -27,29 +31,33 @@ let package = Package(
 
     // Targets are the basic building blocks of a package
     targets: [
-        // AppConfig module - Handles application configuration
+        // Core framework - Business logic and services
         .target(
-            name: "AppConfig",
+            name: "Reminder2CalCore",
             dependencies: [],
-            path: "Sources/AppConfig"
+            path: "Sources/Reminder2CalCore"
         ),
 
-        // Reminder2CalSync module - Core sync logic
-        .target(
-            name: "Reminder2CalSync",
-            dependencies: ["AppConfig"],
-            path: "Sources/Reminder2CalSync"
-        ),
-
-        // Main executable target
+        // Main executable target - UI and app logic
         .executableTarget(
             name: "Reminder2Cal",
             dependencies: [
-                "AppConfig",
-                "Reminder2CalSync"
+                "Reminder2CalCore"
             ],
             path: "Sources/Reminder2Cal"
         ),
+        
+        // Test targets
+        .testTarget(
+            name: "Reminder2CalCoreTests",
+            dependencies: ["Reminder2CalCore"],
+            path: "Tests/Reminder2CalCoreTests"
+        ),
+        .testTarget(
+            name: "Reminder2CalTests",
+            dependencies: ["Reminder2Cal", "Reminder2CalCore"],
+            path: "Tests/Reminder2CalTests"
+        )
     ],
 
     // Swift language version

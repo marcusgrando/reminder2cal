@@ -1,7 +1,6 @@
-import AppConfig
 import Cocoa
 import EventKit
-import Reminder2CalSync
+import Reminder2CalCore
 import ServiceManagement
 import SwiftUI
 
@@ -11,7 +10,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     var accessTimer: Timer?
     var statusItem: NSStatusItem?
     var appConfig = AppConfig()
-    var syncManager: Reminder2CalSync?
+    var syncManager: SyncService?
     var settingsWindow: NSWindow?
     var aboutWindow: NSWindow?
 
@@ -37,7 +36,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             button.action = #selector(showMenu)
         }
 
-        syncManager = Reminder2CalSync(
+        syncManager = SyncService(
             appConfig: appConfig,
             logger: { message in
                 Logger.shared.log(message)
@@ -60,14 +59,6 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     @objc func showMenu() {
         let menu = NSMenu()
 
-        let menuItem = NSMenuItem(title: "", action: nil, keyEquivalent: "")
-        menuItem.attributedTitle = NSAttributedString(
-            string: "Reminder2Cal",
-            attributes: [
-                .font: NSFont.systemFont(ofSize: 14, weight: .bold)
-            ])
-        menu.addItem(menuItem)
-        menu.addItem(NSMenuItem.separator())
         menu.addItem(
             NSMenuItem(title: "About Reminder2Cal", action: #selector(showAbout), keyEquivalent: "")
         )
@@ -253,32 +244,5 @@ class AppDelegate: NSObject, NSApplicationDelegate {
                 NSApp.setActivationPolicy(.accessory)
             }
         }
-    }
-}
-
-@main
-struct MainApp {
-    static func main() {
-        let app = NSApplication.shared
-        let delegate = AppDelegate()
-        app.delegate = delegate
-        app.run()
-    }
-}
-
-extension NSImage {
-    func resized(to newSize: NSSize) -> NSImage? {
-        let newImage = NSImage(size: newSize)
-        newImage.lockFocus()
-        self.draw(in: NSRect(x: 0, y: 0, width: newSize.width, height: newSize.height))
-        newImage.unlockFocus()
-        return newImage
-    }
-}
-
-/// Window that closes on ESC key press
-class EscapableWindow: NSWindow {
-    override func cancelOperation(_ sender: Any?) {
-        close()
     }
 }

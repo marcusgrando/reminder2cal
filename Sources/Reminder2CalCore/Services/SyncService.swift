@@ -1,8 +1,7 @@
-import AppConfig
 import AppKit
 import EventKit
 
-public class Reminder2CalSync {
+public class SyncService {
     private let eventStore = EKEventStore()
     private var appConfig: AppConfig
 
