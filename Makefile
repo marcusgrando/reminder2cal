@@ -10,12 +10,12 @@ GIT_COMMIT := $(shell git rev-parse --short HEAD 2>/dev/null || echo "unknown")
 # Build Configuration
 SWIFT := swift build
 BUILD_CONFIG := release
-SWIFT_FLAGS := --configuration $(BUILD_CONFIG) -Xswiftc -O -Xswiftc -whole-module-optimization
+SWIFT_FLAGS := --configuration $(BUILD_CONFIG) -Xswiftc -O -Xswiftc -whole-module-optimization --arch arm64 --arch x86_64
 MIN_MACOS_VERSION := 14.0
 SWIFT_VERSION := 5.9
 
-# Paths
-BUILD_DIR := .build/$(BUILD_CONFIG)
+# Paths (when using --arch, Swift uses apple/Products directory)
+BUILD_DIR := .build/apple/Products/Release
 EXECUTABLE := $(BUILD_DIR)/Reminder2Cal
 APP_BUNDLE := Reminder2Cal.app
 APP_CONTENTS := $(APP_BUNDLE)/Contents
@@ -27,7 +27,7 @@ ENTITLEMENTS := Entitlements.plist
 # Code Signing & Notarization
 SIGNING_IDENTITY := "Developer ID Application: Marcus Nestor Alves Grando (MY427949GW)"
 CODESIGN_FLAGS := --force --timestamp --options runtime --entitlements $(ENTITLEMENTS)
-NOTARIZE_PROFILE := "notarytool-profile"
+NOTARIZE_PROFILE := "Apple Notarytool"
 TEAM_ID := MY427949GW
 
 # Colors for output
@@ -60,15 +60,10 @@ version: ## Display current version
 # Build Targets
 # ============================================================================
 
-build: ## Build the Swift executable
-	@echo "$(BLUE)Building Reminder2Cal $(VERSION) ($(GIT_COMMIT))...$(NC)"
+build: ## Build universal binary (Intel + Apple Silicon)
+	@echo "$(BLUE)Building universal Reminder2Cal $(VERSION) ($(GIT_COMMIT))...$(NC)"
 	$(SWIFT) $(SWIFT_FLAGS)
-	@echo "$(GREEN)✓ Build complete$(NC)"
-
-build-universal: ## Build universal binary (Intel + Apple Silicon)
-	@echo "$(BLUE)Building universal binary...$(NC)"
-	@swift build --configuration $(BUILD_CONFIG) --arch arm64 --arch x86_64
-	@echo "$(GREEN)✓ Universal binary build complete$(NC)"
+	@echo "$(GREEN)✓ Universal build complete$(NC)"
 
 $(EXECUTABLE):
 	@$(MAKE) -s build
@@ -195,10 +190,11 @@ dmg: app ## Create a DMG for distribution
 	@rm -f Reminder2Cal-temp.dmg
 	@echo "$(GREEN)✓ DMG created: Reminder2Cal.dmg$(NC)"
 
-notarize: dmg ## Notarize the DMG for distribution
+notarize: ## Notarize existing DMG (run 'make dmg' first if needed)
 	@echo "$(BLUE)Submitting for notarization...$(NC)"
+	@test -f Reminder2Cal.dmg || { echo "$(RED)✗ Reminder2Cal.dmg not found. Run 'make dmg' first.$(NC)"; exit 1; }
 	@xcrun notarytool submit Reminder2Cal.dmg \
-		--keychain-profile "$(NOTARIZE_PROFILE)" \
+		--keychain-profile $(NOTARIZE_PROFILE) \
 		--wait
 	@xcrun stapler staple Reminder2Cal.dmg
 	@echo "$(GREEN)✓ DMG notarized and stapled$(NC)"
@@ -207,8 +203,11 @@ dist: clean app dmg ## Clean build and create distribution DMG
 	@echo "$(GREEN)✓ Distribution build complete$(NC)"
 	@echo "$(YELLOW)Note: Run 'make notarize' to notarize for distribution$(NC)"
 
-release: clean verify-signature notarize ## Full release build with notarization
+release: clean app dmg notarize ## Full release build with notarization
 	@echo "$(GREEN)✓ Release build complete and notarized$(NC)"
+	@echo "$(BLUE)Verifying notarized app...$(NC)"
+	@spctl --assess --verbose=4 --type execute $(APP_BUNDLE)
+	@echo "$(GREEN)✓ App is notarized and ready for distribution$(NC)"
 
 bump-patch: ## Bump patch version (1.0.0 -> 1.0.1)
 	@echo "$(BLUE)Bumping patch version...$(NC)"
@@ -246,7 +245,7 @@ info: ## Show build information
 	@echo "  Swift Version:     $(SWIFT_VERSION)"
 	@echo "  Swift Compiler:    $(shell swift --version | head -n 1)"
 	@echo "  Architecture:      $(shell uname -m)"
-	@echo "  Signing Identity:  $(SIGNING_IDENTITY)"
+	@echo '  Signing Identity:  $(SIGNING_IDENTITY)'
 	@echo "  Team ID:           $(TEAM_ID)"
 	@echo "  Bundle ID:         com.marcusgrando.Reminder2Cal"
 	@echo "  App Bundle:        $(APP_BUNDLE)"
