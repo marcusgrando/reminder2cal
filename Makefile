@@ -86,6 +86,7 @@ copy-resources:
 	@cp $(RESOURCES_DIR)/icon.icns $(APP_RESOURCES)/
 	@cp $(RESOURCES_DIR)/reminder2cal.svg $(APP_RESOURCES)/
 	@cp $(RESOURCES_DIR)/PrivacyInfo.xcprivacy $(APP_RESOURCES)/
+	@cp $(CONFIG_DIR)/Reminder2Cal_App_Store.provisionprofile $(APP_CONTENTS)/embedded.provisionprofile
 	@xattr -c $(APP_RESOURCES)/icon.icns 2>/dev/null || true
 
 update-info-plist:
@@ -172,6 +173,10 @@ install: app ## Install the app to /Applications
 
 pkg: app ## Create signed .pkg for App Store submission
 	@echo "$(BLUE)Creating installer package...$(NC)"
+	@echo "  → Fixing permissions..."
+	@chmod -R a+r $(APP_BUNDLE)
+	@chmod a+x $(APP_MACOS)/Reminder2Cal
+	@find $(APP_BUNDLE) -type d -exec chmod a+rx {} \;
 	@productbuild --component $(APP_BUNDLE) /Applications \
 		--sign $(INSTALLER_IDENTITY) \
 		$(PKG_NAME)

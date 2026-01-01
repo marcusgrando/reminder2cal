@@ -4,6 +4,7 @@ import Reminder2CalCore
 import ServiceManagement
 import SwiftUI
 
+@MainActor
 class AppDelegate: NSObject, NSApplicationDelegate {
     let eventStore = EKEventStore()
     var timer: Timer?
@@ -13,6 +14,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     var syncManager: SyncService?
     var settingsWindow: NSWindow?
     var aboutWindow: NSWindow?
+    var paywallWindow: NSWindow?
 
     // Sync control
     private var isSyncing = false
@@ -20,7 +22,13 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     private let syncDebounceInterval: TimeInterval = 1.5
     private var lastNotificationHash: Int?
 
-    func applicationDidFinishLaunching(_ aNotification: Notification) {
+    nonisolated func applicationDidFinishLaunching(_ aNotification: Notification) {
+        Task { @MainActor in
+            await setupApplication()
+        }
+    }
+
+    private func setupApplication() async {
         NSApp.setActivationPolicy(.accessory)
 
         // Initialize logger for AppConfig
@@ -36,33 +44,77 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             button.action = #selector(showMenu)
         }
 
+        // Set login item status
+        appConfig.loginItemEnabled = (SMAppService.mainApp.status == .enabled)
+
+        // Check subscription status before starting sync
+        await SubscriptionManager.shared.refreshStatus()
+        checkAccessAndStart()
+    }
+
+    private func checkAccessAndStart() {
+        let manager = SubscriptionManager.shared
+
+        if manager.hasAccess {
+            Logger.shared.log(
+                "Access granted: \(manager.isSubscribed ? "Subscribed" : "Trial active")")
+            startApp()
+        } else {
+            Logger.shared.log("No access - showing paywall")
+            showPaywall()
+        }
+    }
+
+    private func startApp() {
         syncManager = SyncService(
             appConfig: appConfig,
             logger: { message in
                 Logger.shared.log(message)
             },
             completion: { [weak self] granted in
-                guard let self = self, granted else {
-                    Logger.shared.log("Access to Reminders/Calendar denied or not determined.")
-                    return
+                Task { @MainActor in
+                    guard let self = self, granted else {
+                        Logger.shared.log("Access to Reminders/Calendar denied or not determined.")
+                        return
+                    }
+                    Logger.shared.log("Access granted. Starting sync timer.")
+                    self.startSyncTimer()
+                    self.observeEventStoreChanges()
+                    self.syncManager?.performSync()
                 }
-                Logger.shared.log("Access granted. Starting sync timer.")
-                self.startSyncTimer()
-                self.observeEventStoreChanges()
-                self.syncManager?.performSync()
             }
         )
-
-        // Set login item status
-        appConfig.loginItemEnabled = (SMAppService.mainApp.status == .enabled)
     }
 
     @objc func showMenu() {
         let menu = NSMenu()
 
         menu.addItem(
-            NSMenuItem(title: "About Reminder2Cal", action: #selector(showAbout), keyEquivalent: "")
+            NSMenuItem(
+                title: "About Reminder2Cal", action: #selector(showAbout), keyEquivalent: "")
         )
+        menu.addItem(NSMenuItem.separator())
+
+        // Show subscription status
+        let manager = SubscriptionManager.shared
+        if manager.isSubscribed {
+            let item = NSMenuItem(title: "Subscribed", action: nil, keyEquivalent: "")
+            item.isEnabled = false
+            menu.addItem(item)
+        } else if manager.isTrialActive {
+            let item = NSMenuItem(
+                title: "Trial: \(manager.trialDaysRemaining) days left", action: nil,
+                keyEquivalent: ""
+            )
+            item.isEnabled = false
+            menu.addItem(item)
+            menu.addItem(
+                NSMenuItem(title: "Subscribe...", action: #selector(showPaywall), keyEquivalent: ""))
+        } else {
+            menu.addItem(
+                NSMenuItem(title: "Subscribe...", action: #selector(showPaywall), keyEquivalent: ""))
+        }
+
         menu.addItem(NSMenuItem.separator())
         menu.addItem(
             NSMenuItem(title: "Settings...", action: #selector(showSettings), keyEquivalent: ","))
@@ -74,7 +126,50 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         statusItem?.button?.performClick(nil)
     }
 
+    @objc func showPaywall() {
+        Logger.shared.log("Opening Paywall window")
+        if paywallWindow == nil {
+            createPaywallWindow()
+        }
+
+        paywallWindow?.makeKeyAndOrderFront(nil)
+        NSApp.activate(ignoringOtherApps: true)
+        NSApp.setActivationPolicy(.regular)
+    }
+
+    func createPaywallWindow() {
+        let paywallView = PaywallView(onSubscribed: { [weak self] in
+            Logger.shared.log("Subscription completed")
+            Task { @MainActor in
+                self?.paywallWindow?.close()
+                self?.startApp()
+            }
+        })
+
+        let window = EscapableWindow(
+            contentRect: NSRect(x: 0, y: 0, width: 420, height: 520),
+            styleMask: [.titled, .closable],
+            backing: .buffered, defer: false)
+        window.title = "Subscribe to Reminder2Cal"
+        window.center()
+        window.contentView = NSHostingView(rootView: paywallView)
+        window.isReleasedWhenClosed = false
+
+        paywallWindow = window
+
+        NotificationCenter.default.addObserver(
+            self, selector: #selector(windowWillClose), name: NSWindow.willCloseNotification,
+            object: paywallWindow)
+    }
+
     @objc func showSettings() {
+        // Check access before showing settings
+        let manager = SubscriptionManager.shared
+        guard manager.hasAccess else {
+            showPaywall()
+            return
+        }
+
         Logger.shared.log("Opening Settings window")
         if settingsWindow == nil {
             createSettingsWindow()
@@ -106,11 +201,15 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             appConfig: appConfig,
             onSave: { [weak self] in
                 Logger.shared.log("Settings saved")
-                self?.settingsWindow?.close()
+                Task { @MainActor in
+                    self?.settingsWindow?.close()
+                }
             },
             onCancel: { [weak self] in
                 Logger.shared.log("Settings cancelled")
-                self?.settingsWindow?.close()
+                Task { @MainActor in
+                    self?.settingsWindow?.close()
+                }
             })
 
         let window = EscapableWindow(
@@ -132,7 +231,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
     func createAboutWindow() {
         let aboutView = AboutView(onClose: { [weak self] in
-            DispatchQueue.main.async {
+            Task { @MainActor in
                 self?.aboutWindow?.close()
             }
         })
@@ -156,7 +255,13 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         NSApp.terminate(nil)
     }
 
-    @objc func eventStoreChanged(notification: Notification) {
+    nonisolated func eventStoreChanged(notification: Notification) {
+        Task { @MainActor in
+            handleEventStoreChange(notification: notification)
+        }
+    }
+
+    private func handleEventStoreChange(notification: Notification) {
         // Ignore changes made by our own sync
         guard syncManager?.isMakingChanges != true else {
             return
@@ -186,32 +291,45 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         syncDebounceTimer = Timer.scheduledTimer(
             withTimeInterval: syncDebounceInterval, repeats: false
         ) { [weak self] _ in
-            guard let self = self else { return }
+            Task { @MainActor in
+                guard let self = self else { return }
 
-            let reminderCalendars = self.eventStore.calendars(for: .reminder).filter {
-                self.appConfig.reminderListName.contains($0.title)
-                    && $0.source.title == self.appConfig.accountName
-            }
-
-            for calendar in reminderCalendars {
-                if self.eventStore.calendar(withIdentifier: calendar.calendarIdentifier) != nil {
-                    self.syncRemindersWithCalendar()
-                    break
+                let reminderCalendars = self.eventStore.calendars(for: .reminder).filter {
+                    self.appConfig.reminderListName.contains($0.title)
+                        && $0.source.title == self.appConfig.accountName
                 }
-            }
 
-            // Clear the hash after processing to allow future legitimate notifications
-            self.lastNotificationHash = nil
+                for calendar in reminderCalendars {
+                    if self.eventStore.calendar(withIdentifier: calendar.calendarIdentifier) != nil {
+                        self.syncRemindersWithCalendar()
+                        break
+                    }
+                }
+
+                // Clear the hash after processing to allow future legitimate notifications
+                self.lastNotificationHash = nil
+            }
         }
     }
 
     func observeEventStoreChanges() {
         NotificationCenter.default.addObserver(
-            self, selector: #selector(eventStoreChanged(notification:)), name: .EKEventStoreChanged,
+            self, selector: #selector(eventStoreChangedObjc), name: .EKEventStoreChanged,
             object: nil)
     }
 
-    @objc func syncRemindersWithCalendar() {
+    @objc nonisolated func eventStoreChangedObjc(_ notification: Notification) {
+        eventStoreChanged(notification: notification)
+    }
+
+    func syncRemindersWithCalendar() {
+        // Check subscription before syncing
+        let manager = SubscriptionManager.shared
+        guard manager.hasAccess else {
+            Logger.shared.log("Sync blocked - no active subscription or trial")
+            return
+        }
+
         // Prevent concurrent syncs
         guard !isSyncing else {
             Logger.shared.log("Sync already in progress, skipping duplicate request")
@@ -220,8 +338,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
         isSyncing = true
         self.syncManager?.performSync { [weak self] in
-            // Reset sync flag when sync completes
-            DispatchQueue.main.async {
+            Task { @MainActor in
                 self?.isSyncing = false
             }
         }
@@ -229,8 +346,12 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
     func startSyncTimer() {
         timer = Timer.scheduledTimer(
-            timeInterval: appConfig.timerInterval, target: self,
-            selector: #selector(syncRemindersWithCalendar), userInfo: nil, repeats: true)
+            withTimeInterval: appConfig.timerInterval, repeats: true
+        ) { [weak self] _ in
+            Task { @MainActor in
+                self?.syncRemindersWithCalendar()
+            }
+        }
     }
 
     @objc func windowWillClose(notification: Notification) {
@@ -239,9 +360,11 @@ class AppDelegate: NSObject, NSApplicationDelegate {
                 settingsWindow = nil
             } else if window == aboutWindow {
                 aboutWindow = nil
+            } else if window == paywallWindow {
+                paywallWindow = nil
             }
 
-            if settingsWindow == nil && aboutWindow == nil {
+            if settingsWindow == nil && aboutWindow == nil && paywallWindow == nil {
                 NSApp.setActivationPolicy(.accessory)
             }
         }
