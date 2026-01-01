@@ -126,10 +126,6 @@ Contributions are welcome! Please read our [Contributing Guide](CONTRIBUTING.md)
 
 This project is licensed under the GNU General Public License v3.0 — see the [LICENSE](LICENSE) file for details.
 
-## Acknowledgments
-
-- App icon from [CandyIcons](https://www.flaticon.com/packs/candy-icons)
-
 ---
 
 **Made with Swift for macOS**
