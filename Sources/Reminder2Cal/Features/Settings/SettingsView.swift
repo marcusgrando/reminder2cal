@@ -217,7 +217,7 @@ struct SettingsView: View {
             .padding()
             .background(Color(nsColor: .windowBackgroundColor))
         }
-        .frame(width: 500, height: 600)
+        .frame(minWidth: 450, maxWidth: .infinity, minHeight: 500, maxHeight: .infinity)
         .onAppear {
             loadCalendarAccounts()
             loadCalendars()

@@ -119,6 +119,23 @@ sign-app:
 	@codesign --verify --verbose=2 $(APP_BUNDLE) 2>&1 | head -n 1
 	@echo "$(GREEN)  ✓ Code signing complete$(NC)"
 
+local-app: $(EXECUTABLE) ## Create .app bundle for local testing (ad-hoc signed)
+	@echo "$(BLUE)Creating local application bundle...$(NC)"
+	@$(MAKE) -s create-bundle
+	@echo "  → Copying resources..."
+	@cp $(RESOURCES_DIR)/icon.icns $(APP_RESOURCES)/
+	@cp $(RESOURCES_DIR)/reminder2cal.svg $(APP_RESOURCES)/
+	@cp $(RESOURCES_DIR)/PrivacyInfo.xcprivacy $(APP_RESOURCES)/
+	@xattr -cr $(APP_BUNDLE) 2>/dev/null || true
+	@$(MAKE) -s update-info-plist
+	@$(MAKE) -s compile-assets
+	@$(MAKE) -s copy-executable
+	@echo "  → Code signing (ad-hoc)..."
+	@codesign --force --deep --sign - $(APP_BUNDLE)
+	@codesign --verify --verbose=2 $(APP_BUNDLE) 2>&1 | head -n 1
+	@touch $(APP_BUNDLE)
+	@echo "$(GREEN)✓ Local app bundle created: $(APP_BUNDLE)$(NC)"
+
 # ============================================================================
 # Development Targets
 # ============================================================================

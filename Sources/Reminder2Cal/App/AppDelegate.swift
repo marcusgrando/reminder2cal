@@ -214,9 +214,10 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
         let window = EscapableWindow(
             contentRect: NSRect(x: 0, y: 0, width: 450, height: 700),
-            styleMask: [.titled, .closable, .miniaturizable],
+            styleMask: [.titled, .closable, .miniaturizable, .resizable],
             backing: .buffered, defer: false)
         window.title = "Settings"
+        window.minSize = NSSize(width: 400, height: 500)
         window.center()
         window.setFrameAutosaveName("Settings")
         window.contentView = NSHostingView(rootView: settingsView)

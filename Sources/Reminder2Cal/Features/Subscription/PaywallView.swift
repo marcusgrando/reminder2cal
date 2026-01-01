@@ -29,9 +29,15 @@ struct PaywallView: View {
 
     private var headerSection: some View {
         VStack(spacing: 12) {
-            Image(nsImage: NSApp.applicationIconImage)
-                .resizable()
-                .frame(width: 64, height: 64)
+            if let image = NSImage(named: "reminder2cal.svg") {
+                Image(nsImage: image)
+                    .resizable()
+                    .frame(width: 80, height: 80)
+            } else {
+                Image(nsImage: NSImage(named: "AppIcon") ?? NSImage())
+                    .resizable()
+                    .frame(width: 80, height: 80)
+            }
 
             Text("Reminder2Cal")
                 .font(.title)
@@ -77,7 +83,7 @@ struct PaywallView: View {
     private func featureRow(icon: String, text: String) -> some View {
         HStack(spacing: 12) {
             Image(systemName: icon)
-                .foregroundColor(.accentColor)
+                .foregroundColor(.primary)
                 .frame(width: 24)
             Text(text)
                 .font(.callout)
