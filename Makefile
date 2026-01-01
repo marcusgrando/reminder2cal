@@ -21,17 +21,17 @@ APP_BUNDLE := Reminder2Cal.app
 APP_CONTENTS := $(APP_BUNDLE)/Contents
 APP_MACOS := $(APP_CONTENTS)/MacOS
 APP_RESOURCES := $(APP_CONTENTS)/Resources
-APP_FRAMEWORKS := $(APP_CONTENTS)/Frameworks
+
 # Resource and Configuration paths
 RESOURCES_DIR := Resources
 CONFIG_DIR := Configuration
 ENTITLEMENTS := $(CONFIG_DIR)/Entitlements.plist
 
-# Code Signing & Notarization
-SIGNING_IDENTITY := "Developer ID Application: Marcus Nestor Alves Grando (MY427949GW)"
-CODESIGN_FLAGS := --force --timestamp --options runtime --entitlements $(ENTITLEMENTS)
-NOTARIZE_PROFILE := "notarytool-profile"
+# App Store Code Signing
 TEAM_ID := MY427949GW
+APP_IDENTITY := "3rd Party Mac Developer Application: Marcus Nestor Alves Grando ($(TEAM_ID))"
+INSTALLER_IDENTITY := "3rd Party Mac Developer Installer: Marcus Nestor Alves Grando ($(TEAM_ID))"
+PKG_NAME := Reminder2Cal-$(VERSION).pkg
 
 # Colors for output
 BLUE := \033[0;34m
@@ -44,7 +44,7 @@ NC := \033[0m # No Color
 # Main Targets
 # ============================================================================
 
-.PHONY: all build app clean install run test help version lint format
+.PHONY: all build app clean install run test help lint format pkg release validate
 
 all: app ## Build the complete application bundle (default target)
 
@@ -54,10 +54,6 @@ help: ## Show this help message
 	@echo ""
 	@echo "$(GREEN)Available targets:$(NC)"
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  $(YELLOW)%-15s$(NC) %s\n", $$1, $$2}'
-
-version: ## Display current version
-	@echo "Version: $(VERSION)"
-	@echo "Build: $(BUILD_NUMBER)"
 
 # ============================================================================
 # Build Targets
@@ -71,7 +67,7 @@ build: ## Build universal binary (Intel + Apple Silicon)
 $(EXECUTABLE):
 	@$(MAKE) -s build
 
-app: $(EXECUTABLE) ## Create the .app bundle
+app: $(EXECUTABLE) ## Create the .app bundle (signed for App Store)
 	@echo "$(BLUE)Creating application bundle...$(NC)"
 	@$(MAKE) -s create-bundle
 	@$(MAKE) -s copy-resources
@@ -89,6 +85,7 @@ copy-resources:
 	@echo "  → Copying resources..."
 	@cp $(RESOURCES_DIR)/icon.icns $(APP_RESOURCES)/
 	@cp $(RESOURCES_DIR)/reminder2cal.svg $(APP_RESOURCES)/
+	@cp $(RESOURCES_DIR)/PrivacyInfo.xcprivacy $(APP_RESOURCES)/
 	@xattr -c $(APP_RESOURCES)/icon.icns 2>/dev/null || true
 
 update-info-plist:
@@ -113,20 +110,12 @@ copy-executable:
 	@cp $(EXECUTABLE) $(APP_MACOS)/Reminder2Cal
 
 sign-app:
-	@echo "  → Code signing with hardened runtime..."
-	@if [ -f "$(ENTITLEMENTS)" ]; then \
-		codesign $(CODESIGN_FLAGS) --sign $(SIGNING_IDENTITY) $(APP_BUNDLE); \
-	else \
-		codesign --force --timestamp --options runtime --sign $(SIGNING_IDENTITY) $(APP_BUNDLE); \
-	fi
+	@echo "  → Code signing for App Store..."
+	@codesign --force --timestamp --options runtime \
+		--entitlements $(ENTITLEMENTS) \
+		--sign $(APP_IDENTITY) $(APP_BUNDLE)
 	@codesign --verify --verbose=2 $(APP_BUNDLE) 2>&1 | head -n 1
 	@echo "$(GREEN)  ✓ Code signing complete$(NC)"
-
-verify-signature: ## Verify code signature
-	@echo "$(BLUE)Verifying code signature...$(NC)"
-	@codesign --verify --deep --strict --verbose=2 $(APP_BUNDLE)
-	@spctl --assess --verbose=4 --type execute $(APP_BUNDLE)
-	@echo "$(GREEN)✓ Signature valid$(NC)"
 
 # ============================================================================
 # Development Targets
@@ -144,11 +133,6 @@ debug: ## Build in debug mode
 	@echo "$(BLUE)Building in debug mode...$(NC)"
 	@swift build --configuration debug
 	@echo "$(GREEN)✓ Debug build complete$(NC)"
-
-profile: ## Build for profiling
-	@echo "$(BLUE)Building for profiling...$(NC)"
-	@swift build --configuration release -Xswiftc -profile-generate
-	@echo "$(GREEN)✓ Profile build complete$(NC)"
 
 test: ## Run tests
 	@echo "$(BLUE)Running tests...$(NC)"
@@ -172,66 +156,36 @@ format: $(SWIFT_FORMAT) ## Format code with swift-format
 
 clean: ## Clean build artifacts
 	@echo "$(YELLOW)Cleaning build artifacts...$(NC)"
-	@rm -rf $(APP_BUNDLE) .build *.dmg
-	@pkill Reminder2Cal 2>/dev/null || true
+	@rm -rf $(APP_BUNDLE) .build *.pkg
 	@echo "$(GREEN)✓ Clean complete$(NC)"
-
-clean-derived: ## Clean derived data (similar to Xcode)
-	@echo "$(YELLOW)Cleaning derived data...$(NC)"
-	@rm -rf .build
-	@rm -rf ~/Library/Developer/Xcode/DerivedData/Reminder2Cal-*
-	@echo "$(GREEN)✓ Derived data cleaned$(NC)"
 
 install: app ## Install the app to /Applications
 	@echo "$(BLUE)Installing to /Applications...$(NC)"
+	@pkill Reminder2Cal 2>/dev/null || true
 	@rm -rf /Applications/$(APP_BUNDLE)
 	@cp -R $(APP_BUNDLE) /Applications/
 	@echo "$(GREEN)✓ Installed to /Applications/$(APP_BUNDLE)$(NC)"
 
-uninstall: ## Uninstall the app from /Applications
-	@echo "$(YELLOW)Uninstalling from /Applications...$(NC)"
-	@rm -rf /Applications/$(APP_BUNDLE)
-	@pkill Reminder2Cal 2>/dev/null || true
-	@echo "$(GREEN)✓ Uninstalled$(NC)"
-
 # ============================================================================
-# Release Management
+# App Store Distribution
 # ============================================================================
 
-dmg: app ## Create a DMG for distribution
-	@echo "$(BLUE)Creating DMG...$(NC)"
-	@rm -rf .dmg-contents Reminder2Cal.dmg
-	@mkdir -p .dmg-contents
-	@cp -R $(APP_BUNDLE) .dmg-contents/
-	@ln -s /Applications .dmg-contents/Applications
-	@hdiutil create -volname "Reminder2Cal $(VERSION)" \
-		-srcfolder .dmg-contents \
-		-ov -format UDZO \
-		Reminder2Cal.dmg
-	@rm -rf .dmg-contents
-	@echo "$(GREEN)✓ DMG created: Reminder2Cal.dmg$(NC)"
+pkg: app ## Create signed .pkg for App Store submission
+	@echo "$(BLUE)Creating installer package...$(NC)"
+	@productbuild --component $(APP_BUNDLE) /Applications \
+		--sign $(INSTALLER_IDENTITY) \
+		$(PKG_NAME)
+	@echo "$(GREEN)✓ Package created: $(PKG_NAME)$(NC)"
 
-notarize: ## Notarize existing DMG (run 'make dmg' first if needed)
-	@echo "$(BLUE)Submitting for notarization...$(NC)"
-	@test -f Reminder2Cal.dmg || { echo "$(RED)✗ Reminder2Cal.dmg not found. Run 'make dmg' first.$(NC)"; exit 1; }
-	@xcrun notarytool submit Reminder2Cal.dmg \
-		--keychain-profile $(NOTARIZE_PROFILE) \
-		--wait
-	@xcrun stapler staple Reminder2Cal.dmg
-	@echo "$(GREEN)✓ DMG notarized and stapled$(NC)"
-
-dist: clean app dmg ## Clean build and create distribution DMG
-	@echo "$(GREEN)✓ Distribution build complete$(NC)"
-	@echo "$(YELLOW)Note: Run 'make notarize' to notarize for distribution$(NC)"
-
-release: clean app dmg notarize ## Full release build with notarization
-	@echo "$(GREEN)✓ Release build complete and notarized$(NC)"
-	@echo "$(BLUE)Verifying notarized app...$(NC)"
-	@spctl --assess --verbose=4 --type execute $(APP_BUNDLE)
-	@echo "$(GREEN)✓ App is notarized and ready for distribution$(NC)"
+release: clean pkg ## Full App Store build (clean → build → sign → package)
+	@echo "$(GREEN)✓ App Store build complete: $(PKG_NAME)$(NC)"
+	@echo ""
+	@echo "$(BLUE)Next steps:$(NC)"
+	@echo "  1. Open Transporter app and upload $(PKG_NAME)"
+	@echo "  2. Go to App Store Connect to submit for review"
 
 # ============================================================================
-# Info Targets
+# Info & Validation
 # ============================================================================
 
 info: ## Show build information
@@ -244,21 +198,11 @@ info: ## Show build information
 	@echo "  macOS Target:      $(MIN_MACOS_VERSION)+"
 	@echo "  Swift Version:     $(SWIFT_VERSION)"
 	@echo "  Swift Compiler:    $(shell swift --version | head -n 1)"
-	@echo "  Architecture:      $(shell uname -m)"
-	@echo '  Signing Identity:  $(SIGNING_IDENTITY)'
+	@echo "  Architecture:      Universal (arm64 + x86_64)"
 	@echo "  Team ID:           $(TEAM_ID)"
 	@echo "  Bundle ID:         com.marcusgrando.Reminder2Cal"
 	@echo "  App Bundle:        $(APP_BUNDLE)"
-
-check-deps: ## Check for required dependencies
-	@echo "$(BLUE)Checking dependencies...$(NC)"
-	@command -v swift >/dev/null 2>&1 || { echo "$(RED)✗ Swift not found$(NC)"; exit 1; }
-	@command -v xcrun >/dev/null 2>&1 || { echo "$(RED)✗ Xcode command line tools not found$(NC)"; exit 1; }
-	@command -v codesign >/dev/null 2>&1 || { echo "$(RED)✗ codesign not found$(NC)"; exit 1; }
-	@command -v hdiutil >/dev/null 2>&1 || { echo "$(RED)✗ hdiutil not found$(NC)"; exit 1; }
-	@echo "$(GREEN)✓ All dependencies found$(NC)"
-	@echo "  Swift: $$(swift --version | head -n 1)"
-	@echo "  Xcode: $$(xcodebuild -version 2>/dev/null | head -n 1 || echo 'Command Line Tools only')"
+	@echo "  Package:           $(PKG_NAME)"
 
 validate: app ## Validate the app bundle
 	@echo "$(BLUE)Validating app bundle...$(NC)"
@@ -266,7 +210,9 @@ validate: app ## Validate the app bundle
 	@test -f $(APP_MACOS)/Reminder2Cal || { echo "$(RED)✗ Executable not found$(NC)"; exit 1; }
 	@test -f $(APP_CONTENTS)/Info.plist || { echo "$(RED)✗ Info.plist not found$(NC)"; exit 1; }
 	@test -f $(APP_RESOURCES)/icon.icns || { echo "$(RED)✗ Icon not found$(NC)"; exit 1; }
+	@test -f $(APP_RESOURCES)/PrivacyInfo.xcprivacy || { echo "$(RED)✗ PrivacyInfo.xcprivacy not found$(NC)"; exit 1; }
 	@plutil -lint $(APP_CONTENTS)/Info.plist > /dev/null || { echo "$(RED)✗ Invalid Info.plist$(NC)"; exit 1; }
+	@plutil -lint $(APP_RESOURCES)/PrivacyInfo.xcprivacy > /dev/null || { echo "$(RED)✗ Invalid PrivacyInfo.xcprivacy$(NC)"; exit 1; }
 	@codesign --verify $(APP_BUNDLE) 2>/dev/null || { echo "$(RED)✗ Invalid signature$(NC)"; exit 1; }
 	@echo "$(GREEN)✓ App bundle is valid$(NC)"
 

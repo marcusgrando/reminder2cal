@@ -27,7 +27,7 @@ struct AboutView: View {
                 .foregroundColor(.secondary)
             }
 
-            Text("Copyright © 2025 Marcus Grando. All rights reserved.")
+            Text("Copyright © 2025-2026 Marcus Grando. All rights reserved.")
                 .font(.caption)
                 .foregroundColor(.secondary)
         }

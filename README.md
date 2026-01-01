@@ -14,7 +14,7 @@ Apple Reminders notifications are easy to dismiss and forget. Once you swipe awa
 
 ## The Solution
 
-Reminder2Cal automatically creates calendar events for your reminders, giving you access to Calendar's powerful alarm system. Pair it with apps like [Calalarm](https://apps.apple.com/app/calalarm/id594286325) on iOS for alarms that keep ringing until you acknowledge them.
+Reminder2Cal automatically creates calendar events for your reminders, giving you access to Calendar's powerful alarm system. Pair it with apps like [Calalarm](https://apps.apple.com/br/app/calalarm-calendar/id1590304931) on iOS for alarms that keep ringing until you acknowledge them.
 
 ## Key Features
 
@@ -24,7 +24,6 @@ Reminder2Cal automatically creates calendar events for your reminders, giving yo
 - **Selective Sync** — Choose which reminder lists to sync
 - **Customizable** — Configure sync intervals, event duration, and alarm timing
 - **Privacy First** — All data stays on your Mac, no cloud required
-- **Native Performance** — Built with Swift using Apple's native APIs
 
 ## Perfect For
 
@@ -33,23 +32,53 @@ Reminder2Cal automatically creates calendar events for your reminders, giving yo
 - Time-sensitive tasks requiring acknowledgment
 - Anyone who needs more reliable reminder notifications
 
-## Requirements
+## Download
 
-- macOS 14.0 (Sonoma) or later
-- Calendar and Reminders access permissions
+**[Get it on the Mac App Store](https://apps.apple.com/app/reminder2cal)** — The easiest way to install and receive automatic updates.
 
-## Installation
+## Getting Started
 
-### From Source
+1. After launching, you'll see a small icon in your menu bar (top-right of your screen)
+2. Click the icon and select **Settings**
+3. Choose which reminder list to sync and which calendar to use
+4. Click **Save** — that's it!
+
+> **Tip:** Create a dedicated calendar (e.g., "Reminders") in the Calendar app for synced events. This keeps your calendar organized. Events created by Reminder2Cal are marked with " - R2C" for easy identification.
+
+## How It Works
+
+1. Reminder2Cal watches your selected reminder lists for changes
+2. When a reminder has a due date/time, it creates a matching calendar event
+3. Calendar events include alarms that persist until you acknowledge them
+4. When you complete a reminder, the calendar event is automatically removed
+5. Changes sync automatically every few minutes (configurable in Settings)
+
+> **Note:** Reminder2Cal runs in your menu bar and syncs while your Mac is awake. Reminders created or modified on your iPhone/iPad will sync to your calendar as soon as your Mac wakes up.
+
+## Privacy
+
+- All data stays local on your Mac
+- No analytics or tracking
+- No internet connection required
+- Open source for full transparency
+
+---
+
+## Building from Source
+
+For developers who prefer to build from source:
 
 ```bash
-# Clone the repository
 git clone https://github.com/marcusgrando/reminder2cal.git
 cd reminder2cal
-
-# Build and install
 make install
 ```
+
+### Requirements
+
+- macOS 14.0 (Sonoma) or later
+- Xcode Command Line Tools
+- Swift 5.9+
 
 ### Build Commands
 
@@ -61,62 +90,6 @@ make install
 | `make test` | Run unit tests |
 | `make lint` | Check code style |
 | `make format` | Format code with swift-format |
-
-## Configuration
-
-After launching, click the menu bar icon to access Settings:
-
-1. **Reminder Source** — Select which account and lists to sync
-2. **Calendar Destination** — Choose the target calendar
-3. **Sync Interval** — How often to check for changes (1-60 minutes)
-4. **Event Duration** — Default length of created events
-5. **Alarm Offset** — When to trigger the alarm before the event
-
-## How It Works
-
-1. Reminder2Cal monitors your selected reminder lists for changes
-2. When a reminder has a due date/time, it creates a corresponding calendar event
-3. Calendar events include alarms that persist until acknowledged
-4. Completed reminders are automatically cleaned up from the calendar
-5. Changes sync in real-time with intelligent debouncing
-
-## Privacy
-
-Reminder2Cal is designed with privacy in mind:
-
-- All data stays local on your Mac
-- No analytics or tracking
-- No network connections required
-- Open source for full transparency
-
-## Development
-
-### Project Structure
-
-```
-├── Sources/
-│   ├── Reminder2Cal/           # Main application
-│   │   ├── App/               # Entry points and lifecycle
-│   │   ├── Features/          # Settings and About views
-│   │   ├── Shared/            # Reusable components
-│   │   └── Infrastructure/    # Logging utilities
-│   └── Reminder2CalCore/       # Business logic library
-│       ├── Configuration/     # App settings management
-│       └── Services/          # Sync engine
-├── Resources/                  # Icons and assets
-├── Configuration/              # Build configs and plists
-└── Tests/                      # Unit tests
-```
-
-### Code Quality
-
-```bash
-# Check code style (swift-format is built automatically from Package.swift)
-make lint
-
-# Format code
-make format
-```
 
 ## Contributing
 
