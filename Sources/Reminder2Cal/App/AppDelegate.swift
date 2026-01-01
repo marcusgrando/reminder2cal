@@ -40,17 +40,18 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             appConfig: appConfig,
             logger: { message in
                 Logger.shared.log(message)
+            },
+            completion: { [weak self] granted in
+                guard let self = self, granted else {
+                    Logger.shared.log("Access to Reminders/Calendar denied or not determined.")
+                    return
+                }
+                Logger.shared.log("Access granted. Starting sync timer.")
+                self.startSyncTimer()
+                self.observeEventStoreChanges()
+                self.syncManager?.performSync()
             }
-        ) { [weak self] granted in
-            guard let self = self, granted else {
-                Logger.shared.log("Access to Reminders/Calendar denied or not determined.")
-                return
-            }
-            Logger.shared.log("Access granted. Starting sync timer.")
-            self.startSyncTimer()
-            self.observeEventStoreChanges()
-            self.syncManager?.performSync()
-        }
+        )
 
         // Set login item status
         appConfig.loginItemEnabled = (SMAppService.mainApp.status == .enabled)

@@ -1,19 +1,20 @@
 import XCTest
+
 @testable import Reminder2CalCore
 
 final class AppConfigTests: XCTestCase {
     var sut: AppConfig!
-    
+
     override func setUp() {
         super.setUp()
         sut = AppConfig()
     }
-    
+
     override func tearDown() {
         sut = nil
         super.tearDown()
     }
-    
+
     func testDefaultValues() {
         // Then
         XCTAssertEqual(sut.numberOfDaysForSearch, 14)
@@ -24,11 +25,11 @@ final class AppConfigTests: XCTestCase {
         XCTAssertEqual(sut.defaultHour, 9)
         XCTAssertEqual(sut.defaultMinute, 0)
     }
-    
+
     func testLegacyAccountNameProperty() {
         // Given
         sut.accountName = "Test Account"
-        
+
         // Then
         XCTAssertEqual(sut.calendarAccountName, "Test Account")
         XCTAssertEqual(sut.accountName, sut.calendarAccountName)

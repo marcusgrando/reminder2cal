@@ -26,9 +26,11 @@ public class AppConfig: ObservableObject {
     public init() {
         let config = AppConfig.loadConfig()
         // Try new keys first, fallback to legacy key for backward compatibility
-        self.calendarAccountName = config["calendarAccountName"] as? String ?? config["accountName"] as? String ?? "iCloud"
+        self.calendarAccountName =
+            config["calendarAccountName"] as? String ?? config["accountName"] as? String ?? "iCloud"
         self.calendarName = config["calendarName"] as? String ?? "Reminders"
-        self.reminderAccountName = config["reminderAccountName"] as? String ?? config["accountName"] as? String ?? "iCloud"
+        self.reminderAccountName =
+            config["reminderAccountName"] as? String ?? config["accountName"] as? String ?? "iCloud"
         self.reminderListName = config["reminderListName"] as? [String] ?? ["Inbox"]
         self.numberOfDaysForSearch = config["numberOfDaysForSearch"] as? Int ?? 14
         self.maxDeletionsWithoutConfirmation =

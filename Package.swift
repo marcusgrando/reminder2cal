@@ -25,8 +25,7 @@ let package = Package(
 
     // Dependencies declare other packages that this package depends on
     dependencies: [
-        // Add external dependencies here when needed
-        // .package(url: "https://github.com/example/example.git", from: "1.0.0"),
+        .package(url: "https://github.com/swiftlang/swift-format.git", exact: "602.0.0"),
     ],
 
     // Targets are the basic building blocks of a package

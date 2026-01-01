@@ -1,241 +1,135 @@
 # Reminder2Cal
 
-🔔 Sincronize automaticamente seus Lembretes do macOS com seu Calendário.
+**Never Miss a Reminder Again**
 
-## 📖 Sobre
+[![macOS](https://img.shields.io/badge/macOS-14.0+-blue.svg)](https://www.apple.com/macos)
+[![Swift](https://img.shields.io/badge/Swift-5.9+-orange.svg)](https://swift.org)
+[![License](https://img.shields.io/badge/License-GPL%20v3-green.svg)](LICENSE)
 
-Reminder2Cal é uma aplicação nativa para macOS que monitora seus Lembretes e automaticamente cria eventos no Calendário quando eles têm uma data/hora definida. Funciona silenciosamente na barra de menus, mantendo seus compromissos sempre sincronizados.
+Reminder2Cal bridges the gap between Apple Reminders and Calendar by automatically syncing your time-based reminders as calendar events — complete with the persistent alarms that Reminders lacks.
 
-## ✨ Características
+## The Problem
 
-- 🔄 **Sincronização Automática**: Monitora mudanças em tempo real
-- 📅 **Integração Nativa**: Usa as APIs nativas do macOS para Reminders e Calendar
-- 🎯 **Menu Bar App**: Interface limpa e minimalista na barra de menus
-- 🔐 **Privacidade**: Todos os dados ficam no seu Mac, sem cloud
-- ⚡ **Performance**: Build otimizado com Swift nativo
-- 🔒 **Seguro**: Code signing e hardened runtime
+Apple Reminders notifications are easy to dismiss and forget. Once you swipe away that notification, your reminder disappears into the void. There's no persistent alarm, no way to ensure you actually acknowledge important tasks.
 
-## 🔧 Requisitos
+## The Solution
 
-- macOS 14.0 (Sonoma) ou superior
-- Xcode Command Line Tools
-- Swift 5.9+
+Reminder2Cal automatically creates calendar events for your reminders, giving you access to Calendar's powerful alarm system. Pair it with apps like [Calalarm](https://apps.apple.com/app/calalarm/id594286325) on iOS for alarms that keep ringing until you acknowledge them.
 
-## 🚀 Build & Instalação
+## Key Features
 
-### Build Rápido
+- **Automatic Sync** — Seamlessly syncs reminders to calendar events
+- **Persistent Alarms** — Calendar alarms that won't let you forget
+- **Menu Bar App** — Runs silently in the background
+- **Selective Sync** — Choose which reminder lists to sync
+- **Customizable** — Configure sync intervals, event duration, and alarm timing
+- **Privacy First** — All data stays on your Mac, no cloud required
+- **Native Performance** — Built with Swift using Apple's native APIs
+
+## Perfect For
+
+- Medication reminders that can't be ignored
+- Important appointments and deadlines
+- Time-sensitive tasks requiring acknowledgment
+- Anyone who needs more reliable reminder notifications
+
+## Requirements
+
+- macOS 14.0 (Sonoma) or later
+- Calendar and Reminders access permissions
+
+## Installation
+
+### From Source
 
 ```bash
-make app
-```
+# Clone the repository
+git clone https://github.com/marcusgrando/reminder2cal.git
+cd reminder2cal
 
-### Instalação no /Applications
-
-```bash
+# Build and install
 make install
 ```
 
-### Executar
+### Build Commands
+
+| Command | Description |
+|---------|-------------|
+| `make app` | Build the application bundle |
+| `make run` | Build and launch the app |
+| `make install` | Install to /Applications |
+| `make test` | Run unit tests |
+| `make lint` | Check code style |
+| `make format` | Format code with swift-format |
+
+## Configuration
+
+After launching, click the menu bar icon to access Settings:
+
+1. **Reminder Source** — Select which account and lists to sync
+2. **Calendar Destination** — Choose the target calendar
+3. **Sync Interval** — How often to check for changes (1-60 minutes)
+4. **Event Duration** — Default length of created events
+5. **Alarm Offset** — When to trigger the alarm before the event
+
+## How It Works
+
+1. Reminder2Cal monitors your selected reminder lists for changes
+2. When a reminder has a due date/time, it creates a corresponding calendar event
+3. Calendar events include alarms that persist until acknowledged
+4. Completed reminders are automatically cleaned up from the calendar
+5. Changes sync in real-time with intelligent debouncing
+
+## Privacy
+
+Reminder2Cal is designed with privacy in mind:
+
+- All data stays local on your Mac
+- No analytics or tracking
+- No network connections required
+- Open source for full transparency
+
+## Development
+
+### Project Structure
+
+```
+├── Sources/
+│   ├── Reminder2Cal/           # Main application
+│   │   ├── App/               # Entry points and lifecycle
+│   │   ├── Features/          # Settings and About views
+│   │   ├── Shared/            # Reusable components
+│   │   └── Infrastructure/    # Logging utilities
+│   └── Reminder2CalCore/       # Business logic library
+│       ├── Configuration/     # App settings management
+│       └── Services/          # Sync engine
+├── Resources/                  # Icons and assets
+├── Configuration/              # Build configs and plists
+└── Tests/                      # Unit tests
+```
+
+### Code Quality
 
 ```bash
-make run
+# Check code style (swift-format is built automatically from Package.swift)
+make lint
+
+# Format code
+make format
 ```
 
-### Desinstalar
+## Contributing
 
-```bash
-make uninstall
-```
+Contributions are welcome! Please read our [Contributing Guide](CONTRIBUTING.md) before submitting a pull request.
 
-## 📦 Build System
+## License
 
-O projeto usa um Makefile avançado que replica as funcionalidades do Xcode:
+This project is licensed under the GNU General Public License v3.0 — see the [LICENSE](LICENSE) file for details.
 
-### Targets Principais
+## Acknowledgments
 
-| Target | Descrição |
-|--------|-----------|
-| `make all` | Build completo do app bundle (default) |
-| `make app` | Cria o app bundle |
-| `make build` | Compila o executável Swift |
-| `make run` | Build e executa o app |
-| `make clean` | Limpa artifacts de build |
-| `make install` | Instala em /Applications |
-| `make help` | Mostra todos os targets disponíveis |
-
-### Targets Avançados
-
-| Target | Descrição |
-|--------|-----------|
-| `make build-universal` | Build universal (Intel + Apple Silicon) |
-| `make verify-signature` | Verifica assinatura do código |
-| `make validate` | Valida estrutura do app bundle |
-| `make dmg` | Cria DMG para distribuição |
-| `make notarize` | Notariza o app pela Apple |
-| `make release` | Build completo de release com notarização |
-| `make analyze` | Análise estática do código |
-| `make info` | Mostra informações do build |
-
-### Desenvolvimento
-
-```bash
-# Build de debug
-make debug
-
-# Executar com output de debug
-make run-debug
-
-# Limpar tudo
-make clean
-
-# Limpar derived data
-make clean-derived
-```
-
-### Versionamento
-
-```bash
-# Bump patch version (1.0.0 -> 1.0.1)
-make bump-patch
-
-# Bump minor version (1.0.0 -> 1.1.0)
-make bump-minor
-
-# Bump major version (1.0.0 -> 2.0.0)
-make bump-major
-```
-
-## 📁 Estrutura do Projeto
-
-```
-reminder2cal/
-├── Makefile              # Sistema de build
-├── Package.swift         # Swift Package Manager
-├── VERSION               # Versão do app
-├── Info.plist           # Configuração do bundle
-├── Entitlements.plist   # Permissões e hardened runtime
-├── Build.xcconfig       # Configurações de build
-├── icon.icns            # Ícone do app
-├── Assets.xcassets/     # Asset catalog
-└── Sources/
-    ├── Reminder2Cal/        # App principal
-    ├── Reminder2CalSync/    # Lógica de sincronização
-    └── AppConfig/           # Configurações
-```
-
-## 🔐 Code Signing
-
-O projeto está configurado com:
-- **Developer ID Application** certificate
-- **Hardened Runtime** habilitado
-- **Entitlements** para Calendar e Reminders
-- **Timestamp** para validade da assinatura
-
-### Configurar Code Signing
-
-1. Atualize `SIGNING_IDENTITY` no [`Makefile`](Makefile:24):
-```makefile
-SIGNING_IDENTITY := "Developer ID Application: Seu Nome (TEAM_ID)"
-```
-
-2. Para notarização, configure suas credenciais:
-```bash
-xcrun notarytool store-credentials "notarytool-profile" \
-  --apple-id "seu@email.com" \
-  --team-id "YOUR_TEAM_ID" \
-  --password "app-specific-password"
-```
-
-## 🎯 Workflow de Release
-
-```bash
-# 1. Atualizar versão
-make bump-minor
-
-# 2. Build completo e notarização
-make release
-
-# 3. Distribuir o DMG
-# Reminder2Cal.dmg estará pronto
-```
-
-Ou passo-a-passo:
-
-```bash
-make clean              # Limpar builds anteriores
-make app                # Build do app
-make verify-signature   # Verificar assinatura
-make dmg                # Criar DMG
-make notarize          # Notarizar (requer configuração)
-```
-
-## 🔍 Validação
-
-Verificar se o app está corretamente assinado e pronto para distribuição:
-
-```bash
-# Validar estrutura do bundle
-make validate
-
-# Verificar assinatura
-make verify-signature
-
-# Informações do build
-make info
-```
-
-## 🛠 Desenvolvimento
-
-### Requisitos de Desenvolvimento
-
-```bash
-# Verificar dependências
-make check-deps
-```
-
-### Estrutura Modular
-
-O projeto usa Swift Package Manager com módulos separados:
-
-- **AppConfig**: Gerenciamento de configurações
-- **Reminder2CalSync**: Lógica de sincronização
-- **Reminder2Cal**: Interface e app principal
-
-### Adicionar Novas Features
-
-1. Edite os arquivos em `Sources/`
-2. Build: `make build`
-3. Teste: `make run-debug`
-4. Valide: `make validate`
-
-## 📄 Licença
-
-Copyright © 2025 Marcus Grando. All rights reserved.
-
-## 🤝 Contribuindo
-
-Contribuições são bem-vindas! Por favor:
-
-1. Fork o projeto
-2. Crie uma branch para sua feature
-3. Commit suas mudanças
-4. Push para a branch
-5. Abra um Pull Request
-
-## 📞 Suporte
-
-Para problemas ou sugestões, abra uma issue no GitHub.
-
-## 📚 Documentação Adicional
-
-- [`BUILD_IMPROVEMENTS.md`](BUILD_IMPROVEMENTS.md) - Detalhes das melhorias no build system
-- [`Info.plist`](Info.plist) - Configuração do app bundle
-- [`Entitlements.plist`](Entitlements.plist) - Permissões e segurança
-
-## 🎨 Ícones
-
-Ícones disponíveis em [CandyIcons](https://www.flaticon.com/packs/candy-icons).
+- App icon from [CandyIcons](https://www.flaticon.com/packs/candy-icons)
 
 ---
 
-**Feito com ❤️ em Swift**
+**Made with Swift for macOS**

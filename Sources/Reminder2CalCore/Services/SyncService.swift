@@ -128,7 +128,9 @@ public class SyncService {
                             && $0.source.title == self.appConfig.accountName
                     })
                 else {
-                    self.logger("Synchronization failed: Could not find calendar '\(self.appConfig.calendarName)' in account '\(self.appConfig.accountName)'")
+                    self.logger(
+                        "Synchronization failed: Could not find calendar '\(self.appConfig.calendarName)' in account '\(self.appConfig.accountName)'"
+                    )
                     self.showSyncAlert(
                         message:
                             "Calendar '\(self.appConfig.calendarName)' not found in account '\(self.appConfig.accountName)'."
@@ -323,7 +325,8 @@ public class SyncService {
             var displayTitle = event.title ?? ""
             var reminderListName = "unknown"
             if let match = displayTitle.range(of: "\\[(.+?)\\]$", options: .regularExpression) {
-                reminderListName = String(displayTitle[match]).replacingOccurrences(of: "[", with: "").replacingOccurrences(of: "]", with: "")
+                reminderListName = String(displayTitle[match]).replacingOccurrences(of: "[", with: "")
+                    .replacingOccurrences(of: "]", with: "")
                 displayTitle = displayTitle.replacingOccurrences(of: " \(displayTitle[match])", with: "")
             }
 

@@ -22,12 +22,15 @@ APP_CONTENTS := $(APP_BUNDLE)/Contents
 APP_MACOS := $(APP_CONTENTS)/MacOS
 APP_RESOURCES := $(APP_CONTENTS)/Resources
 APP_FRAMEWORKS := $(APP_CONTENTS)/Frameworks
-ENTITLEMENTS := Entitlements.plist
+# Resource and Configuration paths
+RESOURCES_DIR := Resources
+CONFIG_DIR := Configuration
+ENTITLEMENTS := $(CONFIG_DIR)/Entitlements.plist
 
 # Code Signing & Notarization
 SIGNING_IDENTITY := "Developer ID Application: Marcus Nestor Alves Grando (MY427949GW)"
 CODESIGN_FLAGS := --force --timestamp --options runtime --entitlements $(ENTITLEMENTS)
-NOTARIZE_PROFILE := "Apple Notarytool"
+NOTARIZE_PROFILE := "notarytool-profile"
 TEAM_ID := MY427949GW
 
 # Colors for output
@@ -41,7 +44,7 @@ NC := \033[0m # No Color
 # Main Targets
 # ============================================================================
 
-.PHONY: all build app clean install run test help version
+.PHONY: all build app clean install run test help version lint format
 
 all: app ## Build the complete application bundle (default target)
 
@@ -84,13 +87,13 @@ create-bundle:
 
 copy-resources:
 	@echo "  → Copying resources..."
-	@cp icon.icns $(APP_RESOURCES)/
-	@cp reminder2cal.svg $(APP_RESOURCES)/
+	@cp $(RESOURCES_DIR)/icon.icns $(APP_RESOURCES)/
+	@cp $(RESOURCES_DIR)/reminder2cal.svg $(APP_RESOURCES)/
 	@xattr -c $(APP_RESOURCES)/icon.icns 2>/dev/null || true
 
 update-info-plist:
 	@echo "  → Updating Info.plist with version $(VERSION)..."
-	@cp Info.plist $(APP_CONTENTS)/
+	@cp $(CONFIG_DIR)/Info.plist $(APP_CONTENTS)/
 	@/usr/libexec/PlistBuddy -c "Set :CFBundleShortVersionString $(VERSION)" $(APP_CONTENTS)/Info.plist 2>/dev/null || \
 		/usr/libexec/PlistBuddy -c "Add :CFBundleShortVersionString string $(VERSION)" $(APP_CONTENTS)/Info.plist
 	@/usr/libexec/PlistBuddy -c "Set :CFBundleVersion $(BUILD_NUMBER)" $(APP_CONTENTS)/Info.plist
@@ -103,7 +106,7 @@ compile-assets:
 		--platform macosx \
 		--minimum-deployment-target $(MIN_MACOS_VERSION) \
 		--compile $(APP_RESOURCES)/ \
-		Assets.xcassets 2>/dev/null || true
+		$(RESOURCES_DIR)/Assets.xcassets 2>/dev/null || true
 
 copy-executable:
 	@echo "  → Copying executable..."
@@ -151,6 +154,22 @@ test: ## Run tests
 	@echo "$(BLUE)Running tests...$(NC)"
 	@swift test
 
+SWIFT_FORMAT := .build/release/swift-format
+
+$(SWIFT_FORMAT):
+	@echo "$(BLUE)Building swift-format...$(NC)"
+	@swift build --product swift-format --configuration release
+	@echo "$(GREEN)✓ swift-format built$(NC)"
+
+lint: $(SWIFT_FORMAT) ## Check code style with swift-format
+	@echo "$(BLUE)Checking code style...$(NC)"
+	@$(SWIFT_FORMAT) lint --configuration .swift-format --recursive Sources Tests
+
+format: $(SWIFT_FORMAT) ## Format code with swift-format
+	@echo "$(BLUE)Formatting code with swift-format...$(NC)"
+	@$(SWIFT_FORMAT) format --configuration .swift-format --in-place --recursive Sources Tests
+	@echo "$(GREEN)✓ Code formatted$(NC)"
+
 clean: ## Clean build artifacts
 	@echo "$(YELLOW)Cleaning build artifacts...$(NC)"
 	@rm -rf $(APP_BUNDLE) .build *.dmg
@@ -181,13 +200,15 @@ uninstall: ## Uninstall the app from /Applications
 
 dmg: app ## Create a DMG for distribution
 	@echo "$(BLUE)Creating DMG...$(NC)"
-	@rm -f Reminder2Cal.dmg Reminder2Cal-temp.dmg
+	@rm -rf .dmg-contents Reminder2Cal.dmg
+	@mkdir -p .dmg-contents
+	@cp -R $(APP_BUNDLE) .dmg-contents/
+	@ln -s /Applications .dmg-contents/Applications
 	@hdiutil create -volname "Reminder2Cal $(VERSION)" \
-		-srcfolder $(APP_BUNDLE) \
-		-ov -format UDRW \
-		Reminder2Cal-temp.dmg
-	@hdiutil convert Reminder2Cal-temp.dmg -format UDZO -o Reminder2Cal.dmg
-	@rm -f Reminder2Cal-temp.dmg
+		-srcfolder .dmg-contents \
+		-ov -format UDZO \
+		Reminder2Cal.dmg
+	@rm -rf .dmg-contents
 	@echo "$(GREEN)✓ DMG created: Reminder2Cal.dmg$(NC)"
 
 notarize: ## Notarize existing DMG (run 'make dmg' first if needed)
@@ -208,27 +229,6 @@ release: clean app dmg notarize ## Full release build with notarization
 	@echo "$(BLUE)Verifying notarized app...$(NC)"
 	@spctl --assess --verbose=4 --type execute $(APP_BUNDLE)
 	@echo "$(GREEN)✓ App is notarized and ready for distribution$(NC)"
-
-bump-patch: ## Bump patch version (1.0.0 -> 1.0.1)
-	@echo "$(BLUE)Bumping patch version...$(NC)"
-	@$(eval NEW_VERSION := $(shell echo $(VERSION) | awk -F. '{print $$1"."$$2"."$$3+1}'))
-	@echo $(NEW_VERSION) > VERSION
-	@echo "$(GREEN)Version updated: $(VERSION) → $(NEW_VERSION)$(NC)"
-	@echo "Don't forget to commit the VERSION file!"
-
-bump-minor: ## Bump minor version (1.0.0 -> 1.1.0)
-	@echo "$(BLUE)Bumping minor version...$(NC)"
-	@$(eval NEW_VERSION := $(shell echo $(VERSION) | awk -F. '{print $$1"."$$2+1".0"}'))
-	@echo $(NEW_VERSION) > VERSION
-	@echo "$(GREEN)Version updated: $(VERSION) → $(NEW_VERSION)$(NC)"
-	@echo "Don't forget to commit the VERSION file!"
-
-bump-major: ## Bump major version (1.0.0 -> 2.0.0)
-	@echo "$(BLUE)Bumping major version...$(NC)"
-	@$(eval NEW_VERSION := $(shell echo $(VERSION) | awk -F. '{print $$1+1".0.0"}'))
-	@echo $(NEW_VERSION) > VERSION
-	@echo "$(GREEN)Version updated: $(VERSION) → $(NEW_VERSION)$(NC)"
-	@echo "Don't forget to commit the VERSION file!"
 
 # ============================================================================
 # Info Targets
@@ -269,11 +269,6 @@ validate: app ## Validate the app bundle
 	@plutil -lint $(APP_CONTENTS)/Info.plist > /dev/null || { echo "$(RED)✗ Invalid Info.plist$(NC)"; exit 1; }
 	@codesign --verify $(APP_BUNDLE) 2>/dev/null || { echo "$(RED)✗ Invalid signature$(NC)"; exit 1; }
 	@echo "$(GREEN)✓ App bundle is valid$(NC)"
-
-analyze: ## Analyze Swift code for issues
-	@echo "$(BLUE)Analyzing code...$(NC)"
-	@swift build --configuration debug -Xswiftc -analyze
-	@echo "$(GREEN)✓ Analysis complete$(NC)"
 
 # ============================================================================
 # Special Targets
