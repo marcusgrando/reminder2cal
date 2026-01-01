@@ -156,14 +156,18 @@ public class SyncService {
                             return nil
                         }
                         let reminderKey =
-                            "\(reminder.title ?? "") [\(reminder.calendar.title)]|\(dateFormatter.string(from: reminderDate))|\(reminder.notes ?? "")|\(reminder.isCompleted)"
+                            "\(reminder.title ?? "") [\(reminder.calendar.title)] - R2C|\(dateFormatter.string(from: reminderDate))|\(reminder.notes ?? "")|\(reminder.isCompleted)"
                         return reminderKey
                     })
 
-                // Remove events that don't have a matching reminder
+                // Remove events that don't have a matching reminder (only R2C events)
                 for event in events {
+                    // Only consider events created by R2C (have the suffix)
+                    guard let title = event.title, title.hasSuffix(" - R2C") else {
+                        continue
+                    }
                     let eventKey =
-                        "\(event.title ?? "")|\(dateFormatter.string(from: event.startDate))|\(event.notes ?? "")|\((event.alarms?.isEmpty == true))"
+                        "\(title)|\(dateFormatter.string(from: event.startDate))|\(event.notes ?? "")|\((event.alarms?.isEmpty == true))"
                     if !reminderKeys.contains(eventKey) {
                         eventsToRemove.append(event)
                     }
@@ -174,7 +178,7 @@ public class SyncService {
                 for reminder in reminders {
                     if let reminderDate = reminder.dueDateComponents?.date {
                         let reminderKey =
-                            "\(reminder.title ?? "") [\(reminder.calendar.title)]|\(dateFormatter.string(from: reminderDate))|\(reminder.notes ?? "")|\(reminder.isCompleted)"
+                            "\(reminder.title ?? "") [\(reminder.calendar.title)] - R2C|\(dateFormatter.string(from: reminderDate))|\(reminder.notes ?? "")|\(reminder.isCompleted)"
                         if !events.contains(where: { event in
                             let eventKey =
                                 "\(event.title ?? "")|\(dateFormatter.string(from: event.startDate))|\(event.notes ?? "")|\((event.alarms?.isEmpty == true))"
@@ -223,7 +227,7 @@ public class SyncService {
                 for reminder in reminders {
                     if let reminderDate = reminder.dueDateComponents?.date {
                         let reminderKey =
-                            "\(reminder.title ?? "") [\(reminder.calendar.title)]|\(dateFormatter.string(from: reminderDate))|\(reminder.notes ?? "")|\(reminder.isCompleted)"
+                            "\(reminder.title ?? "") [\(reminder.calendar.title)] - R2C|\(dateFormatter.string(from: reminderDate))|\(reminder.notes ?? "")|\(reminder.isCompleted)"
                         if !events.contains(where: { event in
                             let eventKey =
                                 "\(event.title ?? "")|\(dateFormatter.string(from: event.startDate))|\(event.notes ?? "")|\((event.alarms?.isEmpty == true))"
@@ -292,7 +296,7 @@ public class SyncService {
     private func createEvent(for reminder: EKReminder, in calendar: EKCalendar) {
         let event = EKEvent(eventStore: eventStore)
         event.calendar = calendar
-        event.title = "\(reminder.title ?? "") [\(reminder.calendar.title)]"
+        event.title = "\(reminder.title ?? "") [\(reminder.calendar.title)] - R2C"
         event.startDate =
             reminder.dueDateComponents?.date
             ?? DateComponents(hour: appConfig.defaultHour, minute: appConfig.defaultMinute).date
@@ -310,29 +314,19 @@ public class SyncService {
         let dateStr = dateFormatter.string(from: event.startDate)
 
         self.logger(
-            "  Created event in '\(calendar.title)': \"\(reminder.title ?? "")\" [from '\(reminder.calendar.title)'] | \(dateStr) | Notes: \(event.notes ?? "none") | Alarm: \(!reminder.isCompleted ? "yes" : "no")"
+            "  Created event in '\(calendar.title)': \"\(event.title ?? "")\" | \(dateStr) | Notes: \(event.notes ?? "none") | Alarm: \(!reminder.isCompleted ? "yes" : "no")"
         )
     }
 
     private func removeEvent(_ event: EKEvent) {
         do {
-
             let dateFormatter = DateFormatter()
             dateFormatter.dateFormat = "yyyy-MM-dd HH:mm"
             let dateStr = dateFormatter.string(from: event.startDate)
 
-            // Extract reminder list name from title (format: "Title [ReminderList]")
-            var displayTitle = event.title ?? ""
-            var reminderListName = "unknown"
-            if let match = displayTitle.range(of: "\\[(.+?)\\]$", options: .regularExpression) {
-                reminderListName = String(displayTitle[match]).replacingOccurrences(of: "[", with: "")
-                    .replacingOccurrences(of: "]", with: "")
-                displayTitle = displayTitle.replacingOccurrences(of: " \(displayTitle[match])", with: "")
-            }
-
             try eventStore.remove(event, span: .thisEvent)
             self.logger(
-                "  Deleted event from '\(event.calendar?.title ?? "unknown")': \"\(displayTitle)\" [from '\(reminderListName)'] | \(dateStr) | Notes: \(event.notes ?? "none")"
+                "  Deleted event from '\(event.calendar?.title ?? "unknown")': \"\(event.title ?? "")\" | \(dateStr) | Notes: \(event.notes ?? "none")"
             )
         } catch {
             self.logger("  Error deleting event '\(event.title ?? "")': \(error.localizedDescription)")

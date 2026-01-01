@@ -64,12 +64,7 @@ struct SettingsView: View {
             Form {
                 Section {
                     Toggle(isOn: $loginItemEnabled) {
-                        Label {
-                            Text("Start with Login")
-                        } icon: {
-                            Image(systemName: "power")
-                                .foregroundColor(.green)
-                        }
+                        Label("Start with Login", systemImage: "power")
                     }
                     .toggleStyle(SwitchToggleStyle(tint: .blue))
                     .onChange(of: loginItemEnabled) { _, newValue in
@@ -117,6 +112,11 @@ struct SettingsView: View {
                     }
                 } header: {
                     Text("Calendar Destination")
+                } footer: {
+                    Label("Tip: Create a dedicated calendar (e.g., \"Reminders\") for best results. Events created by Reminder2Cal are marked with \" - R2C\" suffix.", systemImage: "lightbulb.fill")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                        .symbolRenderingMode(.multicolor)
                 }
 
                 Section {
