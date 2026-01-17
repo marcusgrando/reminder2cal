@@ -61,7 +61,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             startApp()
         } else {
             Logger.shared.log("No access - showing paywall")
-            showPaywall()
+            showSubscription()
         }
     }
 
@@ -96,24 +96,24 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         menu.addItem(NSMenuItem.separator())
 
         // Show subscription status
-        let manager = SubscriptionManager.shared
-        if manager.isSubscribed {
-            let item = NSMenuItem(title: "Subscribed", action: nil, keyEquivalent: "")
-            item.isEnabled = false
-            menu.addItem(item)
-        } else if manager.isTrialActive {
-            let item = NSMenuItem(
-                title: "Trial: \(manager.trialDaysRemaining) days left", action: nil,
+        let mgr = SubscriptionManager.shared
+        let isSubscribed = mgr.isSubscribed
+        let isTrialActive = mgr.isTrialActive
+        let trialDaysRemaining = mgr.trialDaysRemaining
+        
+        let subscriptionMenuItem: NSMenuItem
+        if isSubscribed {
+            subscriptionMenuItem = NSMenuItem(title: "Subscribed", action: #selector(showSubscription), keyEquivalent: "")
+        } else if isTrialActive {
+            subscriptionMenuItem = NSMenuItem(
+                title: "Trial: \(trialDaysRemaining) days left",
+                action: #selector(showSubscription),
                 keyEquivalent: ""
             )
-            item.isEnabled = false
-            menu.addItem(item)
-            menu.addItem(
-                NSMenuItem(title: "Subscribe...", action: #selector(showPaywall), keyEquivalent: ""))
         } else {
-            menu.addItem(
-                NSMenuItem(title: "Subscribe...", action: #selector(showPaywall), keyEquivalent: ""))
+            subscriptionMenuItem = NSMenuItem(title: "Subscribe...", action: #selector(showSubscription), keyEquivalent: "")
         }
+        menu.addItem(subscriptionMenuItem)
 
         menu.addItem(NSMenuItem.separator())
         menu.addItem(
@@ -122,12 +122,16 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             NSMenuItem(title: "Open Log File", action: #selector(openLogFile), keyEquivalent: ""))
         menu.addItem(NSMenuItem.separator())
         menu.addItem(NSMenuItem(title: "Quit", action: #selector(quit), keyEquivalent: "q"))
-        statusItem?.menu = menu
-        statusItem?.button?.performClick(nil)
+        
+        // Show menu at the status item location (rebuilds every time)
+        statusItem?.menu = nil  // Clear any existing menu
+        if let button = statusItem?.button {
+            menu.popUp(positioning: nil, at: NSPoint(x: 0, y: button.bounds.height + 5), in: button)
+        }
     }
 
-    @objc func showPaywall() {
-        Logger.shared.log("Opening Paywall window")
+    @objc func showSubscription() {
+        Logger.shared.log("Opening Subscription window")
         if paywallWindow == nil {
             createPaywallWindow()
         }
@@ -147,10 +151,10 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         })
 
         let window = EscapableWindow(
-            contentRect: NSRect(x: 0, y: 0, width: 420, height: 520),
+            contentRect: NSRect(x: 0, y: 0, width: 380, height: 520),
             styleMask: [.titled, .closable],
             backing: .buffered, defer: false)
-        window.title = "Subscribe to Reminder2Cal"
+        window.title = "Subscription"
         window.center()
         window.contentView = NSHostingView(rootView: paywallView)
         window.isReleasedWhenClosed = false
@@ -166,7 +170,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         // Check access before showing settings
         let manager = SubscriptionManager.shared
         guard manager.hasAccess else {
-            showPaywall()
+            showSubscription()
             return
         }
 
@@ -213,13 +217,12 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             })
 
         let window = EscapableWindow(
-            contentRect: NSRect(x: 0, y: 0, width: 450, height: 700),
+            contentRect: NSRect(x: 0, y: 0, width: 480, height: 770),
             styleMask: [.titled, .closable, .miniaturizable, .resizable],
             backing: .buffered, defer: false)
         window.title = "Settings"
-        window.minSize = NSSize(width: 400, height: 500)
+        window.minSize = NSSize(width: 450, height: 750)
         window.center()
-        window.setFrameAutosaveName("Settings")
         window.contentView = NSHostingView(rootView: settingsView)
         window.isReleasedWhenClosed = false
 
@@ -237,8 +240,8 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             }
         })
         aboutWindow = EscapableWindow(
-            contentRect: NSRect(x: 0, y: 0, width: 350, height: 300),
-            styleMask: [.titled, .closable, .miniaturizable],
+            contentRect: NSRect(x: 0, y: 0, width: 300, height: 280),
+            styleMask: [.titled, .closable],
             backing: .buffered, defer: false)
         aboutWindow?.title = "About"
         aboutWindow?.center()

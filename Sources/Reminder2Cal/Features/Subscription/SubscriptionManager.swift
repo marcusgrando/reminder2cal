@@ -21,6 +21,7 @@ class SubscriptionManager: ObservableObject {
     @Published private(set) var isLoading: Bool = false
     @Published private(set) var isLoadingProducts: Bool = false
     @Published private(set) var productLoadError: String?
+    @Published private(set) var subscriptionExpirationDate: Date?
 
     // MARK: - Private Properties
 
@@ -46,6 +47,22 @@ class SubscriptionManager: ObservableObject {
         }
         set {
             UserDefaults.standard.set(newValue, forKey: firstLaunchKey)
+        }
+    }
+    
+    /// Status text for display
+    var statusText: String {
+        if isSubscribed {
+            if let expDate = subscriptionExpirationDate {
+                let formatter = DateFormatter()
+                formatter.dateStyle = .medium
+                return "Subscribed until \(formatter.string(from: expDate))"
+            }
+            return "Subscribed"
+        } else if isTrialActive {
+            return "Trial: \(trialDaysRemaining) days left"
+        } else {
+            return "Trial ended"
         }
     }
 
@@ -83,8 +100,13 @@ class SubscriptionManager: ObservableObject {
             switch result {
             case .success(let verification):
                 let transaction = try checkVerified(verification)
-                await updateSubscriptionStatus()
                 await transaction.finish()
+                
+                // Update status immediately
+                isSubscribed = true
+                if let expirationDate = transaction.expirationDate {
+                    subscriptionExpirationDate = expirationDate
+                }
 
             case .userCancelled:
                 break
@@ -111,14 +133,18 @@ class SubscriptionManager: ObservableObject {
         do {
             try await AppStore.sync()
             await updateSubscriptionStatus()
+            
+            if !isSubscribed {
+                purchaseError = "No active subscription found"
+            }
         } catch {
-            purchaseError = "Failed to restore purchases: \(error.localizedDescription)"
+            purchaseError = "Failed to restore: \(error.localizedDescription)"
         }
 
         isLoading = false
     }
 
-    // MARK: - Private Methods
+    // MARK: - Internal Methods
 
     func loadProducts() async {
         isLoadingProducts = true
@@ -126,36 +152,39 @@ class SubscriptionManager: ObservableObject {
 
         do {
             let productIds = SubscriptionProduct.allCases.map { $0.rawValue }
-            products = try await Product.products(for: productIds)
+            let storeProducts = try await Product.products(for: Set(productIds))
+            products = Array(storeProducts)
 
             if products.isEmpty {
                 productLoadError = "No subscription products available"
             }
         } catch {
-            productLoadError = "Unable to connect to App Store"
-            print("StoreKit error loading products: \(error)")
+            productLoadError = "Unable to load products: \(error.localizedDescription)"
         }
 
         isLoadingProducts = false
     }
 
+    // MARK: - Private Methods
+
     private func updateSubscriptionStatus() async {
         var hasActiveSubscription = false
-
+        var expirationDate: Date?
+        
         for await result in Transaction.currentEntitlements {
             if case .verified(let transaction) = result {
-                if transaction.productType == .autoRenewable {
+                if transaction.productType == .autoRenewable && transaction.revocationDate == nil {
                     hasActiveSubscription = true
-                    break
+                    expirationDate = transaction.expirationDate
                 }
             }
         }
 
         isSubscribed = hasActiveSubscription
+        subscriptionExpirationDate = expirationDate
     }
 
     private func updateTrialStatus() {
-        // Set first launch date if not set
         if firstLaunchDate == nil {
             firstLaunchDate = Date()
         }
@@ -185,8 +214,13 @@ class SubscriptionManager: ObservableObject {
         Task.detached {
             for await result in Transaction.updates {
                 if case .verified(let transaction) = result {
-                    await self.updateSubscriptionStatus()
                     await transaction.finish()
+                    await MainActor.run {
+                        if transaction.productType == .autoRenewable && transaction.revocationDate == nil {
+                            self.isSubscribed = true
+                            self.subscriptionExpirationDate = transaction.expirationDate
+                        }
+                    }
                 }
             }
         }

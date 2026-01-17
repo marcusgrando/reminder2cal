@@ -51,11 +51,6 @@ let package = Package(
             name: "Reminder2CalCoreTests",
             dependencies: ["Reminder2CalCore"],
             path: "Tests/Reminder2CalCoreTests"
-        ),
-        .testTarget(
-            name: "Reminder2CalTests",
-            dependencies: ["Reminder2Cal", "Reminder2CalCore"],
-            path: "Tests/Reminder2CalTests"
         )
     ],
 

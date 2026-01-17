@@ -113,10 +113,13 @@ struct SettingsView: View {
                 } header: {
                     Text("Calendar Destination")
                 } footer: {
-                    Label("Tip: Create a dedicated calendar (e.g., \"Reminders\") for best results. Events created by Reminder2Cal are marked with \" - R2C\" suffix.", systemImage: "lightbulb.fill")
-                        .font(.caption)
-                        .foregroundColor(.secondary)
-                        .symbolRenderingMode(.multicolor)
+                    Label(
+                        "Tip: Create a dedicated calendar (e.g., \"Reminders\") for best results. Events created by Reminder2Cal are marked with \" - R2C\" suffix.",
+                        systemImage: "lightbulb.fill"
+                    )
+                    .font(.caption2)
+                    .foregroundColor(.secondary)
+                    .symbolRenderingMode(.multicolor)
                 }
 
                 Section {
@@ -214,10 +217,11 @@ struct SettingsView: View {
                 .keyboardShortcut(.defaultAction)
                 .buttonStyle(.borderedProminent)
             }
-            .padding()
+            .padding(.horizontal)
+            .padding(.vertical, 12)
             .background(Color(nsColor: .windowBackgroundColor))
         }
-        .frame(minWidth: 450, maxWidth: .infinity, minHeight: 500, maxHeight: .infinity)
+        .frame(minWidth: 450, maxWidth: .infinity, minHeight: 750, maxHeight: .infinity)
         .onAppear {
             loadCalendarAccounts()
             loadCalendars()

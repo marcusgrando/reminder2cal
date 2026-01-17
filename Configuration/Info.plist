@@ -2,39 +2,39 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
-    <key>CFBundleName</key>
-    <string>Reminder2Cal</string>
-    <key>CFBundleDisplayName</key>
-    <string>Reminder2Cal</string>
-    <key>CFBundleIdentifier</key>
-    <string>com.marcusgrando.Reminder2Cal</string>
-    <key>CFBundleExecutable</key>
-    <string>Reminder2Cal</string>
-    <key>CFBundlePackageType</key>
-    <string>APPL</string>
-    <key>CFBundleInfoDictionaryVersion</key>
-    <string>6.0</string>
-    <key>CFBundleShortVersionString</key>
-    <string>1.0.0</string>
-    <key>CFBundleVersion</key>
-    <string>1</string>
-    <key>CFBundleIconFile</key>
-    <string>icon</string>
-    <key>LSApplicationCategoryType</key>
-    <string>public.app-category.productivity</string>
-    <key>LSUIElement</key>
-    <true/>
-    <key>LSMinimumSystemVersion</key>
-    <string>14.0</string>
-    <key>NSCalendarsUsageDescription</key>
-    <string>Reminder2Cal needs access to your Calendar to create events from your reminders.</string>
-    <key>NSCalendarsFullAccessUsageDescription</key>
-    <string>Reminder2Cal needs full access to your Calendar to sync reminders and create events.</string>
-    <key>NSRemindersUsageDescription</key>
-    <string>Reminder2Cal needs access to your Reminders to sync them to your calendar.</string>
-    <key>NSRemindersFullAccessUsageDescription</key>
-    <string>Reminder2Cal needs full access to your Reminders to monitor changes and sync them to your calendar.</string>
-    <key>NSHumanReadableCopyright</key>
-    <string>Copyright © 2025-2026 Marcus Grando. All rights reserved.</string>
+	<key>CFBundleDisplayName</key>
+	<string>Reminder2Cal</string>
+	<key>CFBundleExecutable</key>
+	<string>Reminder2Cal</string>
+	<key>CFBundleIconFile</key>
+	<string>icon</string>
+	<key>CFBundleIdentifier</key>
+	<string>com.marcusgrando.Reminder2Cal</string>
+	<key>CFBundleInfoDictionaryVersion</key>
+	<string>6.0</string>
+	<key>CFBundleName</key>
+	<string>Reminder2Cal</string>
+	<key>CFBundlePackageType</key>
+	<string>APPL</string>
+	<key>CFBundleShortVersionString</key>
+	<string>1.1.1</string>
+	<key>CFBundleVersion</key>
+	<string>38</string>
+	<key>LSApplicationCategoryType</key>
+	<string>public.app-category.productivity</string>
+	<key>LSMinimumSystemVersion</key>
+	<string>14.0</string>
+	<key>LSUIElement</key>
+	<true/>
+	<key>NSCalendarsFullAccessUsageDescription</key>
+	<string>Reminder2Cal needs full access to your Calendar to sync reminders and create events.</string>
+	<key>NSCalendarsUsageDescription</key>
+	<string>Reminder2Cal needs access to your Calendar to create events from your reminders.</string>
+	<key>NSHumanReadableCopyright</key>
+	<string>Copyright © 2025-2026 Marcus Grando. All rights reserved.</string>
+	<key>NSRemindersFullAccessUsageDescription</key>
+	<string>Reminder2Cal needs full access to your Reminders to monitor changes and sync them to your calendar.</string>
+	<key>NSRemindersUsageDescription</key>
+	<string>Reminder2Cal needs access to your Reminders to sync them to your calendar.</string>
 </dict>
 </plist>
