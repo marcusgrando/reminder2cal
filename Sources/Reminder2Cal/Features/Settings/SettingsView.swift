@@ -1,6 +1,5 @@
 import Combine
 import EventKit
-import Reminder2CalCore
 import ServiceManagement
 import SwiftUI
 

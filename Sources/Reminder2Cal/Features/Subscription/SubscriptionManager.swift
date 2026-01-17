@@ -49,7 +49,7 @@ class SubscriptionManager: ObservableObject {
             UserDefaults.standard.set(newValue, forKey: firstLaunchKey)
         }
     }
-    
+
     /// Status text for display
     var statusText: String {
         if isSubscribed {
@@ -101,7 +101,7 @@ class SubscriptionManager: ObservableObject {
             case .success(let verification):
                 let transaction = try checkVerified(verification)
                 await transaction.finish()
-                
+
                 // Update status immediately
                 isSubscribed = true
                 if let expirationDate = transaction.expirationDate {
@@ -133,7 +133,7 @@ class SubscriptionManager: ObservableObject {
         do {
             try await AppStore.sync()
             await updateSubscriptionStatus()
-            
+
             if !isSubscribed {
                 purchaseError = "No active subscription found"
             }
@@ -170,7 +170,7 @@ class SubscriptionManager: ObservableObject {
     private func updateSubscriptionStatus() async {
         var hasActiveSubscription = false
         var expirationDate: Date?
-        
+
         for await result in Transaction.currentEntitlements {
             if case .verified(let transaction) = result {
                 if transaction.productType == .autoRenewable && transaction.revocationDate == nil {

@@ -1,6 +1,5 @@
 import Cocoa
 import EventKit
-import Reminder2CalCore
 import ServiceManagement
 import SwiftUI
 
@@ -100,10 +99,11 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         let isSubscribed = mgr.isSubscribed
         let isTrialActive = mgr.isTrialActive
         let trialDaysRemaining = mgr.trialDaysRemaining
-        
+
         let subscriptionMenuItem: NSMenuItem
         if isSubscribed {
-            subscriptionMenuItem = NSMenuItem(title: "Subscribed", action: #selector(showSubscription), keyEquivalent: "")
+            subscriptionMenuItem = NSMenuItem(
+                title: "Subscribed", action: #selector(showSubscription), keyEquivalent: "")
         } else if isTrialActive {
             subscriptionMenuItem = NSMenuItem(
                 title: "Trial: \(trialDaysRemaining) days left",
@@ -111,7 +111,8 @@ class AppDelegate: NSObject, NSApplicationDelegate {
                 keyEquivalent: ""
             )
         } else {
-            subscriptionMenuItem = NSMenuItem(title: "Subscribe...", action: #selector(showSubscription), keyEquivalent: "")
+            subscriptionMenuItem = NSMenuItem(
+                title: "Subscribe...", action: #selector(showSubscription), keyEquivalent: "")
         }
         menu.addItem(subscriptionMenuItem)
 
@@ -122,7 +123,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             NSMenuItem(title: "Open Log File", action: #selector(openLogFile), keyEquivalent: ""))
         menu.addItem(NSMenuItem.separator())
         menu.addItem(NSMenuItem(title: "Quit", action: #selector(quit), keyEquivalent: "q"))
-        
+
         // Show menu at the status item location (rebuilds every time)
         statusItem?.menu = nil  // Clear any existing menu
         if let button = statusItem?.button {

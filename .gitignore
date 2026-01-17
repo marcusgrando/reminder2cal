@@ -83,6 +83,7 @@ Reminder2Cal.app/
 *.tar.gz
 *.ipa
 *.dSYM.zip
+*.xcarchive
 
 # Build products
 *.hmap
@@ -94,6 +95,11 @@ Reminder2Cal.app/
 *.log
 *.bak
 *.backup
+
+# Local secrets (never commit)
+.env.local
+*.p8
+private_keys/
 
 # Swift
 *.swiftdeps

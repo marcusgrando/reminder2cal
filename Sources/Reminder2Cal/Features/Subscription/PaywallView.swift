@@ -12,13 +12,13 @@ struct PaywallView: View {
         VStack(spacing: 16) {
             headerSection
             featuresSection
-            
+
             if subscriptionManager.isSubscribed {
                 subscriptionStatusSection
             } else {
                 subscriptionSection
             }
-            
+
             footerSection
         }
         .padding(24)
@@ -46,7 +46,7 @@ struct PaywallView: View {
             statusBadge
         }
     }
-    
+
     @ViewBuilder
     private var statusBadge: some View {
         if subscriptionManager.isSubscribed {
@@ -99,9 +99,9 @@ struct PaywallView: View {
             Spacer()
         }
     }
-    
+
     // MARK: - Subscription Status (when subscribed)
-    
+
     private var subscriptionStatusSection: some View {
         VStack(spacing: 12) {
             // Status card (mirrors productCard layout)
@@ -123,7 +123,7 @@ struct PaywallView: View {
             .frame(maxWidth: .infinity)
             .background(Color(NSColor.controlBackgroundColor))
             .cornerRadius(10)
-            
+
             // Close button (mirrors subscribeButton layout)
             Button {
                 dismiss()
@@ -183,7 +183,8 @@ struct PaywallView: View {
             }
 
             if let subscription = product.subscription,
-               let introOffer = subscription.introductoryOffer {
+                let introOffer = subscription.introductoryOffer
+            {
                 Text("\(introOffer.period.value)-\(introOffer.period.unit.localizedDescription) free trial included")
                     .font(.caption)
                     .foregroundColor(.secondary)
@@ -210,7 +211,7 @@ struct PaywallView: View {
                         .font(.caption)
                 }
                 .opacity(0)
-                
+
                 // Actual content
                 if subscriptionManager.isLoading {
                     ProgressView()
@@ -236,7 +237,7 @@ struct PaywallView: View {
         .focusEffectDisabled()
         .disabled(subscriptionManager.isLoading)
     }
-    
+
     private var errorView: some View {
         VStack(spacing: 8) {
             Text(subscriptionManager.productLoadError ?? "Unable to load subscription")
@@ -282,7 +283,9 @@ struct PaywallView: View {
             .disabled(subscriptionManager.isLoading)
 
             HStack(spacing: 12) {
-                Link("Terms", destination: URL(string: "https://www.apple.com/legal/internet-services/itunes/dev/stdeula/")!)
+                Link(
+                    "Terms",
+                    destination: URL(string: "https://www.apple.com/legal/internet-services/itunes/dev/stdeula/")!)
                 Text("•").foregroundColor(.secondary)
                 Link("Privacy", destination: URL(string: "https://marcusgrando.github.io/reminder2cal/PRIVACY")!)
             }

@@ -3,11 +3,11 @@ import SwiftUI
 
 struct AboutView: View {
     var onClose: (() -> Void)?
-    
+
     private var appVersion: String {
         Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "1.0.0"
     }
-    
+
     private var buildNumber: String {
         Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? "1"
     }

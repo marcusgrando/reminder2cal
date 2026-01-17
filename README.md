@@ -77,19 +77,28 @@ make install
 ### Requirements
 
 - macOS 14.0 (Sonoma) or later
-- Xcode Command Line Tools
-- Swift 5.9+
+- Xcode 15+ with Command Line Tools
 
 ### Build Commands
 
 | Command | Description |
 |---------|-------------|
-| `make app` | Build the application bundle |
+| `make` | Build Release (universal binary) |
+| `make debug` | Build Debug (for development) |
 | `make run` | Build and launch the app |
 | `make install` | Install to /Applications |
-| `make test` | Run unit tests |
 | `make lint` | Check code style |
 | `make format` | Format code with swift-format |
+| `make info` | Show build information |
+
+### App Store Distribution
+
+| Command | Description |
+|---------|-------------|
+| `make archive` | Create .xcarchive for App Store |
+| `make pkg` | Export signed .pkg from archive |
+| `make upload` | Upload to App Store Connect |
+| `make release` | Full: clean → archive → pkg → upload |
 
 ## Contributing
 
