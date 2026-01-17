@@ -95,15 +95,13 @@ struct PaywallView: View {
 
     private var subscriptionSection: some View {
         VStack(spacing: 16) {
-            if let product = subscriptionManager.products.first {
+            if subscriptionManager.isLoadingProducts {
+                loadingView
+            } else if let product = subscriptionManager.products.first {
+                productCard(product: product)
                 subscriptionButton(product: product)
-            } else if subscriptionManager.isLoading {
-                ProgressView()
-                    .scaleEffect(0.8)
             } else {
-                Text("Unable to load subscription options")
-                    .font(.callout)
-                    .foregroundColor(.secondary)
+                errorStateView
             }
 
             if let error = subscriptionManager.purchaseError {
@@ -114,6 +112,90 @@ struct PaywallView: View {
         }
     }
 
+    private var loadingView: some View {
+        VStack(spacing: 12) {
+            ProgressView()
+                .scaleEffect(0.8)
+            Text("Loading subscription options...")
+                .font(.caption)
+                .foregroundColor(.secondary)
+        }
+        .frame(height: 100)
+    }
+
+    private var errorStateView: some View {
+        VStack(spacing: 12) {
+            Image(systemName: "exclamationmark.triangle")
+                .font(.title2)
+                .foregroundColor(.orange)
+
+            Text("Unable to load subscription")
+                .font(.subheadline)
+                .fontWeight(.medium)
+
+            if let error = subscriptionManager.productLoadError {
+                Text(error)
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+                    .multilineTextAlignment(.center)
+            }
+
+            Button("Try Again") {
+                Task {
+                    await subscriptionManager.loadProducts()
+                }
+            }
+            .buttonStyle(.borderedProminent)
+            .controlSize(.small)
+        }
+        .padding()
+        .frame(maxWidth: .infinity)
+        .background(Color(NSColor.controlBackgroundColor))
+        .cornerRadius(12)
+    }
+
+    private func productCard(product: Product) -> some View {
+        VStack(spacing: 8) {
+            Text(product.displayName)
+                .font(.headline)
+
+            if !product.description.isEmpty {
+                Text(product.description)
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+                    .multilineTextAlignment(.center)
+                    .lineLimit(2)
+            }
+
+            HStack(spacing: 4) {
+                Text(product.displayPrice)
+                    .font(.title2)
+                    .fontWeight(.bold)
+                Text("/ year")
+                    .font(.subheadline)
+                    .foregroundColor(.secondary)
+            }
+
+            if let subscription = product.subscription,
+               let introOffer = subscription.introductoryOffer {
+                HStack(spacing: 4) {
+                    Image(systemName: "gift")
+                    Text("\(introOffer.period.value)-\(introOffer.period.unit.localizedDescription) free trial")
+                }
+                .font(.caption)
+                .foregroundColor(.green)
+                .padding(.horizontal, 8)
+                .padding(.vertical, 4)
+                .background(Color.green.opacity(0.1))
+                .cornerRadius(6)
+            }
+        }
+        .padding()
+        .frame(maxWidth: .infinity)
+        .background(Color(NSColor.controlBackgroundColor))
+        .cornerRadius(12)
+    }
+
     private func subscriptionButton(product: Product) -> some View {
         Button {
             Task {
@@ -121,9 +203,9 @@ struct PaywallView: View {
             }
         } label: {
             VStack(spacing: 4) {
-                Text("Subscribe for \(product.displayPrice)/year")
+                Text("Subscribe Now")
                     .font(.headline)
-                Text("Auto-renews annually")
+                Text("Auto-renews annually. Cancel anytime.")
                     .font(.caption)
                     .foregroundColor(.white.opacity(0.8))
             }
@@ -161,4 +243,16 @@ struct PaywallView: View {
 
 #Preview {
     PaywallView()
+}
+
+extension Product.SubscriptionPeriod.Unit {
+    var localizedDescription: String {
+        switch self {
+        case .day: return "day"
+        case .week: return "week"
+        case .month: return "month"
+        case .year: return "year"
+        @unknown default: return "period"
+        }
+    }
 }

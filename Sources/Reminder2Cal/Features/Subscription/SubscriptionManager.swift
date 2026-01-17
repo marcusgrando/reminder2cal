@@ -19,6 +19,8 @@ class SubscriptionManager: ObservableObject {
     @Published private(set) var products: [Product] = []
     @Published private(set) var purchaseError: String?
     @Published private(set) var isLoading: Bool = false
+    @Published private(set) var isLoadingProducts: Bool = false
+    @Published private(set) var productLoadError: String?
 
     // MARK: - Private Properties
 
@@ -118,13 +120,23 @@ class SubscriptionManager: ObservableObject {
 
     // MARK: - Private Methods
 
-    private func loadProducts() async {
+    func loadProducts() async {
+        isLoadingProducts = true
+        productLoadError = nil
+
         do {
             let productIds = SubscriptionProduct.allCases.map { $0.rawValue }
             products = try await Product.products(for: productIds)
+
+            if products.isEmpty {
+                productLoadError = "No subscription products available"
+            }
         } catch {
-            print("Failed to load products: \(error)")
+            productLoadError = "Unable to connect to App Store"
+            print("StoreKit error loading products: \(error)")
         }
+
+        isLoadingProducts = false
     }
 
     private func updateSubscriptionStatus() async {
