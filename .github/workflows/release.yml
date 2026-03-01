@@ -46,11 +46,17 @@ jobs:
         run: |
           DMG_PATH=build/Reminder2Cal.dmg
           APP_PATH=build/DerivedData/Build/Products/Release/Reminder2Cal.app
+          STAGING=build/dmg-staging
           rm -f "$DMG_PATH"
+          rm -rf "$STAGING"
+          mkdir -p "$STAGING"
+          cp -R "$APP_PATH" "$STAGING/"
+          ln -s /Applications "$STAGING/Applications"
           hdiutil create -volname "Reminder2Cal" \
-            -srcfolder "$APP_PATH" \
+            -srcfolder "$STAGING" \
             -ov -format UDZO \
             "$DMG_PATH"
+          rm -rf "$STAGING"
 
       - name: Notarize
         env:

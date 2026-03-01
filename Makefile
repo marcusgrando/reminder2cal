@@ -116,10 +116,15 @@ install: build ## Install to /Applications
 dmg: build ## Create .dmg for distribution
 	@echo "$(BLUE)Creating DMG...$(NC)"
 	@rm -f "$(DMG_PATH)"
+	@rm -rf "$(BUILD_DIR)/dmg-staging"
+	@mkdir -p "$(BUILD_DIR)/dmg-staging"
+	@cp -R "$(APP_PATH)" "$(BUILD_DIR)/dmg-staging/"
+	@ln -s /Applications "$(BUILD_DIR)/dmg-staging/Applications"
 	@hdiutil create -volname "Reminder2Cal" \
-		-srcfolder "$(APP_PATH)" \
+		-srcfolder "$(BUILD_DIR)/dmg-staging" \
 		-ov -format UDZO \
 		"$(DMG_PATH)"
+	@rm -rf "$(BUILD_DIR)/dmg-staging"
 	@echo "$(GREEN)✓ DMG created: $(DMG_PATH)$(NC)"
 
 # ============================================================================
