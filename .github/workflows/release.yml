@@ -5,9 +5,13 @@ on:
     tags: ['v*.*.*']
   workflow_dispatch:
 
+permissions:
+  contents: write
+
 jobs:
   build-and-release:
     runs-on: macos-15
+    environment: release
     steps:
       - uses: actions/checkout@v4
 
