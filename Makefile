@@ -11,21 +11,27 @@ PROJECT := Reminder2Cal.xcodeproj
 SCHEME := Reminder2Cal
 BUILD_DIR := build
 DERIVED_DATA := $(BUILD_DIR)/DerivedData
-ARCHIVE_PATH := $(BUILD_DIR)/Reminder2Cal.xcarchive
-EXPORT_PATH := $(BUILD_DIR)/Export
 
 # Paths
 APP_PATH := $(DERIVED_DATA)/Build/Products/Release/Reminder2Cal.app
-PKG_PATH := $(EXPORT_PATH)/Reminder2Cal.pkg
+DMG_PATH := $(BUILD_DIR)/Reminder2Cal.dmg
 
-# App Store Connect
+# Signing
 TEAM_ID := MY427949GW
-
-# Load secrets from .env.local (gitignored) if exists
--include .env.local
 
 # xcodebuild base command
 XCODEBUILD := xcodebuild -project $(PROJECT) -scheme $(SCHEME)
+
+# Optional CI overrides (e.g., CODE_SIGN_IDENTITY="Developer ID Application")
+SIGN_IDENTITY ?=
+SIGN_STYLE ?=
+XCODEBUILD_OVERRIDES :=
+ifneq ($(SIGN_IDENTITY),)
+	XCODEBUILD_OVERRIDES += CODE_SIGN_IDENTITY="$(SIGN_IDENTITY)"
+endif
+ifneq ($(SIGN_STYLE),)
+	XCODEBUILD_OVERRIDES += CODE_SIGN_STYLE=$(SIGN_STYLE)
+endif
 
 # Colors
 BLUE := \033[0;34m
@@ -38,7 +44,7 @@ NC := \033[0m
 # Main Targets
 # ============================================================================
 
-.PHONY: all build app debug clean run archive export pkg upload release lint format install info help validate
+.PHONY: all build app debug clean run dmg lint format install info help validate
 
 all: build ## Build the application (default)
 
@@ -60,6 +66,7 @@ build: ## Build Release (universal binary)
 		-destination 'generic/platform=macOS' \
 		-derivedDataPath $(DERIVED_DATA) \
 		ONLY_ACTIVE_ARCH=NO \
+		$(XCODEBUILD_OVERRIDES) \
 		-quiet
 	@echo "$(GREEN)✓ Build complete: $(APP_PATH)$(NC)"
 
@@ -96,51 +103,17 @@ install: build ## Install to /Applications
 	@echo "$(GREEN)✓ Installed to /Applications/Reminder2Cal.app$(NC)"
 
 # ============================================================================
-# App Store Distribution
+# Distribution
 # ============================================================================
 
-archive: ## Create archive for App Store
-	@echo "$(BLUE)Creating archive...$(NC)"
-	@$(XCODEBUILD) archive \
-		-archivePath $(ARCHIVE_PATH) \
-		-configuration Release \
-		-destination 'generic/platform=macOS' \
-		-allowProvisioningUpdates \
-		ONLY_ACTIVE_ARCH=NO
-	@echo "$(GREEN)✓ Archive created: $(ARCHIVE_PATH)$(NC)"
-
-export: archive ## Export signed .pkg from archive
-	@echo "$(BLUE)Exporting for App Store...$(NC)"
-	@xcodebuild -exportArchive \
-		-archivePath $(ARCHIVE_PATH) \
-		-exportPath $(EXPORT_PATH) \
-		-exportOptionsPlist Configuration/ExportOptions.plist \
-		-allowProvisioningUpdates
-	@echo "$(GREEN)✓ Package created: $(PKG_PATH)$(NC)"
-
-pkg: export ## Alias for export
-
-upload: export ## Upload to App Store Connect (requires .env.local)
-	@if [ -z "$(API_KEY)" ] || [ -z "$(API_ISSUER)" ]; then \
-		echo "$(RED)Error: API_KEY and API_ISSUER not found$(NC)"; \
-		echo "Create .env.local with:"; \
-		echo "  API_KEY = your-key-id"; \
-		echo "  API_ISSUER = your-issuer-id"; \
-		echo "Get keys at: https://appstoreconnect.apple.com/access/integrations/api"; \
-		exit 1; \
-	fi
-	@echo "$(BLUE)Uploading to App Store Connect...$(NC)"
-	@xcrun altool --upload-app \
-		-f "$(PKG_PATH)" \
-		--apiKey "$(API_KEY)" \
-		--apiIssuer "$(API_ISSUER)" \
-		-t macos
-	@echo "$(GREEN)✓ Upload complete$(NC)"
-
-release: clean upload ## Full release: clean → archive → export → upload
-	@echo ""
-	@echo "$(GREEN)✓ Release $(VERSION) uploaded to App Store Connect$(NC)"
-	@echo "$(BLUE)Next: Go to App Store Connect to submit for review$(NC)"
+dmg: build ## Create .dmg for distribution
+	@echo "$(BLUE)Creating DMG...$(NC)"
+	@rm -f "$(DMG_PATH)"
+	@hdiutil create -volname "Reminder2Cal" \
+		-srcfolder "$(APP_PATH)" \
+		-ov -format UDZO \
+		"$(DMG_PATH)"
+	@echo "$(GREEN)✓ DMG created: $(DMG_PATH)$(NC)"
 
 # ============================================================================
 # Code Quality
@@ -167,14 +140,7 @@ info: ## Show build information
 	@echo "  Bundle ID:      com.marcusgrando.Reminder2Cal"
 	@echo "  Xcode:          $(shell xcodebuild -version | head -1)"
 	@echo "  App Path:       $(APP_PATH)"
-	@echo "  Archive Path:   $(ARCHIVE_PATH)"
-	@echo "  Package Path:   $(PKG_PATH)"
-	@echo ""
-	@if [ -n "$(API_KEY)" ]; then \
-		echo "  $(GREEN)API Key:        Configured$(NC)"; \
-	else \
-		echo "  $(YELLOW)API Key:        Not configured (see .env.local.example)$(NC)"; \
-	fi
+	@echo "  DMG Path:       $(DMG_PATH)"
 
 validate: build ## Validate the built app
 	@echo "$(BLUE)Validating...$(NC)"

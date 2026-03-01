@@ -13,7 +13,6 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     var syncManager: SyncService?
     var settingsWindow: NSWindow?
     var aboutWindow: NSWindow?
-    var paywallWindow: NSWindow?
 
     // Sync control
     private var isSyncing = false
@@ -46,22 +45,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         // Set login item status
         appConfig.loginItemEnabled = (SMAppService.mainApp.status == .enabled)
 
-        // Check subscription status before starting sync
-        await SubscriptionManager.shared.refreshStatus()
-        checkAccessAndStart()
-    }
-
-    private func checkAccessAndStart() {
-        let manager = SubscriptionManager.shared
-
-        if manager.hasAccess {
-            Logger.shared.log(
-                "Access granted: \(manager.isSubscribed ? "Subscribed" : "Trial active")")
-            startApp()
-        } else {
-            Logger.shared.log("No access - showing paywall")
-            showSubscription()
-        }
+        startApp()
     }
 
     private func startApp() {
@@ -94,29 +78,6 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         )
         menu.addItem(NSMenuItem.separator())
 
-        // Show subscription status
-        let mgr = SubscriptionManager.shared
-        let isSubscribed = mgr.isSubscribed
-        let isTrialActive = mgr.isTrialActive
-        let trialDaysRemaining = mgr.trialDaysRemaining
-
-        let subscriptionMenuItem: NSMenuItem
-        if isSubscribed {
-            subscriptionMenuItem = NSMenuItem(
-                title: "Subscribed", action: #selector(showSubscription), keyEquivalent: "")
-        } else if isTrialActive {
-            subscriptionMenuItem = NSMenuItem(
-                title: "Trial: \(trialDaysRemaining) days left",
-                action: #selector(showSubscription),
-                keyEquivalent: ""
-            )
-        } else {
-            subscriptionMenuItem = NSMenuItem(
-                title: "Subscribe...", action: #selector(showSubscription), keyEquivalent: "")
-        }
-        menu.addItem(subscriptionMenuItem)
-
-        menu.addItem(NSMenuItem.separator())
         menu.addItem(
             NSMenuItem(title: "Settings...", action: #selector(showSettings), keyEquivalent: ","))
         menu.addItem(
@@ -125,56 +86,12 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         menu.addItem(NSMenuItem(title: "Quit", action: #selector(quit), keyEquivalent: "q"))
 
         // Show menu at the status item location (rebuilds every time)
-        statusItem?.menu = nil  // Clear any existing menu
-        if let button = statusItem?.button {
-            menu.popUp(positioning: nil, at: NSPoint(x: 0, y: button.bounds.height + 5), in: button)
-        }
-    }
-
-    @objc func showSubscription() {
-        Logger.shared.log("Opening Subscription window")
-        if paywallWindow == nil {
-            createPaywallWindow()
-        }
-
-        paywallWindow?.makeKeyAndOrderFront(nil)
-        NSApp.activate(ignoringOtherApps: true)
-        NSApp.setActivationPolicy(.regular)
-    }
-
-    func createPaywallWindow() {
-        let paywallView = PaywallView(onSubscribed: { [weak self] in
-            Logger.shared.log("Subscription completed")
-            Task { @MainActor in
-                self?.paywallWindow?.close()
-                self?.startApp()
-            }
-        })
-
-        let window = EscapableWindow(
-            contentRect: NSRect(x: 0, y: 0, width: 380, height: 520),
-            styleMask: [.titled, .closable],
-            backing: .buffered, defer: false)
-        window.title = "Subscription"
-        window.center()
-        window.contentView = NSHostingView(rootView: paywallView)
-        window.isReleasedWhenClosed = false
-
-        paywallWindow = window
-
-        NotificationCenter.default.addObserver(
-            self, selector: #selector(windowWillClose), name: NSWindow.willCloseNotification,
-            object: paywallWindow)
+        statusItem?.menu = menu
+        statusItem?.button?.performClick(nil)
+        statusItem?.menu = nil
     }
 
     @objc func showSettings() {
-        // Check access before showing settings
-        let manager = SubscriptionManager.shared
-        guard manager.hasAccess else {
-            showSubscription()
-            return
-        }
-
         Logger.shared.log("Opening Settings window")
         if settingsWindow == nil {
             createSettingsWindow()
@@ -328,13 +245,6 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     func syncRemindersWithCalendar() {
-        // Check subscription before syncing
-        let manager = SubscriptionManager.shared
-        guard manager.hasAccess else {
-            Logger.shared.log("Sync blocked - no active subscription or trial")
-            return
-        }
-
         // Prevent concurrent syncs
         guard !isSyncing else {
             Logger.shared.log("Sync already in progress, skipping duplicate request")
@@ -365,11 +275,9 @@ class AppDelegate: NSObject, NSApplicationDelegate {
                 settingsWindow = nil
             } else if window == aboutWindow {
                 aboutWindow = nil
-            } else if window == paywallWindow {
-                paywallWindow = nil
             }
 
-            if settingsWindow == nil && aboutWindow == nil && paywallWindow == nil {
+            if settingsWindow == nil && aboutWindow == nil {
                 NSApp.setActivationPolicy(.accessory)
             }
         }

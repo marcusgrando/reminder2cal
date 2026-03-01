@@ -7,13 +7,10 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		9FB5ABD82F1BEE2B00CC6D59 /* Products.storekit in Resources */ = {isa = PBXBuildFile; fileRef = 9FB5ABD72F1BEE2B00CC6D59 /* Products.storekit */; };
 		A1000001 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1000001 /* AppDelegate.swift */; };
 		A1000002 /* Reminder2CalApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1000002 /* Reminder2CalApp.swift */; };
 		A1000003 /* AboutView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1000003 /* AboutView.swift */; };
 		A1000004 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1000004 /* SettingsView.swift */; };
-		A1000005 /* PaywallView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1000005 /* PaywallView.swift */; };
-		A1000006 /* SubscriptionManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1000006 /* SubscriptionManager.swift */; };
 		A1000007 /* Logger.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1000007 /* Logger.swift */; };
 		A1000008 /* EscapableWindow.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1000008 /* EscapableWindow.swift */; };
 		A1000009 /* NSImage+Resize.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1000009 /* NSImage+Resize.swift */; };
@@ -25,13 +22,10 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
-		9FB5ABD72F1BEE2B00CC6D59 /* Products.storekit */ = {isa = PBXFileReference; lastKnownFileType = text; path = Products.storekit; sourceTree = "<group>"; };
 		B1000001 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
 		B1000002 /* Reminder2CalApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Reminder2CalApp.swift; sourceTree = "<group>"; };
 		B1000003 /* AboutView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AboutView.swift; sourceTree = "<group>"; };
 		B1000004 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
-		B1000005 /* PaywallView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PaywallView.swift; sourceTree = "<group>"; };
-		B1000006 /* SubscriptionManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SubscriptionManager.swift; sourceTree = "<group>"; };
 		B1000007 /* Logger.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Logger.swift; sourceTree = "<group>"; };
 		B1000008 /* EscapableWindow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EscapableWindow.swift; sourceTree = "<group>"; };
 		B1000009 /* NSImage+Resize.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "NSImage+Resize.swift"; sourceTree = "<group>"; };
@@ -100,7 +94,6 @@
 			children = (
 				E1000006 /* About */,
 				E1000007 /* Settings */,
-				E1000008 /* Subscription */,
 			);
 			path = Features;
 			sourceTree = "<group>";
@@ -119,15 +112,6 @@
 				B1000004 /* SettingsView.swift */,
 			);
 			path = Settings;
-			sourceTree = "<group>";
-		};
-		E1000008 /* Subscription */ = {
-			isa = PBXGroup;
-			children = (
-				B1000005 /* PaywallView.swift */,
-				B1000006 /* SubscriptionManager.swift */,
-			);
-			path = Subscription;
 			sourceTree = "<group>";
 		};
 		E1000010 /* Infrastructure */ = {
@@ -203,7 +187,6 @@
 			children = (
 				B1000030 /* Info.plist */,
 				B1000031 /* Entitlements.plist */,
-				9FB5ABD72F1BEE2B00CC6D59 /* Products.storekit */,
 			);
 			path = Configuration;
 			sourceTree = "<group>";
@@ -275,7 +258,6 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				9FB5ABD82F1BEE2B00CC6D59 /* Products.storekit in Resources */,
 				A1000020 /* Assets.xcassets in Resources */,
 				A1000021 /* icon.icns in Resources */,
 				A1000022 /* PrivacyInfo.xcprivacy in Resources */,
@@ -293,8 +275,6 @@
 				A1000002 /* Reminder2CalApp.swift in Sources */,
 				A1000003 /* AboutView.swift in Sources */,
 				A1000004 /* SettingsView.swift in Sources */,
-				A1000005 /* PaywallView.swift in Sources */,
-				A1000006 /* SubscriptionManager.swift in Sources */,
 				A1000007 /* Logger.swift in Sources */,
 				A1000008 /* EscapableWindow.swift in Sources */,
 				A1000009 /* NSImage+Resize.swift in Sources */,
