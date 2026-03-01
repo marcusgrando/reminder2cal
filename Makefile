@@ -22,15 +22,20 @@ TEAM_ID := MY427949GW
 # xcodebuild base command
 XCODEBUILD := xcodebuild -project $(PROJECT) -scheme $(SCHEME)
 
-# Optional CI overrides (e.g., CODE_SIGN_IDENTITY="Developer ID Application")
+# Optional CI overrides
 SIGN_IDENTITY ?=
 SIGN_STYLE ?=
+APP_VERSION ?=
 XCODEBUILD_OVERRIDES :=
 ifneq ($(SIGN_IDENTITY),)
 	XCODEBUILD_OVERRIDES += CODE_SIGN_IDENTITY="$(SIGN_IDENTITY)"
 endif
 ifneq ($(SIGN_STYLE),)
 	XCODEBUILD_OVERRIDES += CODE_SIGN_STYLE=$(SIGN_STYLE)
+endif
+ifneq ($(APP_VERSION),)
+	XCODEBUILD_OVERRIDES += MARKETING_VERSION=$(APP_VERSION)
+	VERSION := $(APP_VERSION)
 endif
 
 # Colors
