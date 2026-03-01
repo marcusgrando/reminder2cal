@@ -7,7 +7,6 @@ import SwiftUI
 class AppDelegate: NSObject, NSApplicationDelegate {
     let eventStore = EKEventStore()
     var timer: Timer?
-    var accessTimer: Timer?
     var statusItem: NSStatusItem?
     var appConfig = AppConfig()
     var syncManager: SyncService?
@@ -35,13 +34,6 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         }
         Logger.shared.log("Application started")
 
-        // Create the status item in the menu bar
-        statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
-        if let button = statusItem?.button {
-            button.image = NSImage(named: "MenuIcon")
-            button.action = #selector(showMenu)
-        }
-
         // Set login item status
         appConfig.loginItemEnabled = (SMAppService.mainApp.status == .enabled)
 
@@ -58,10 +50,21 @@ class AppDelegate: NSObject, NSApplicationDelegate {
                 Task { @MainActor in
                     guard let self = self, granted else {
                         Logger.shared.log("Access to Reminders/Calendar denied or not determined.")
+                        NSApp.terminate(nil)
                         return
                     }
                     Logger.shared.log("Access granted. Starting sync timer.")
+
+                    // Create the status item in the menu bar only after permissions granted
+                    self.statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
+                    if let button = self.statusItem?.button {
+                        button.image = NSImage(named: "MenuIcon")
+                        button.action = #selector(self.showMenu)
+                    }
+
                     self.startSyncTimer()
+                    // Register observer AFTER SyncService.init() completes to avoid
+                    // catching the EKEventStoreChanged triggered by the initial access request
                     self.observeEventStoreChanges()
                     self.syncManager?.performSync()
                 }
@@ -184,8 +187,8 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     private func handleEventStoreChange(notification: Notification) {
-        // Ignore changes made by our own sync
-        guard syncManager?.isMakingChanges != true else {
+        // Ignore changes made by our own sync or during access requests
+        guard syncManager?.isMakingChanges != true && syncManager?.isRequestingAccess != true else {
             return
         }
 

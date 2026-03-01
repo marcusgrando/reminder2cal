@@ -234,33 +234,64 @@ struct SettingsView: View {
     }
 
     private func requestAccessAndLoadData() {
+        let reminderStatus = EKEventStore.authorizationStatus(for: .reminder)
+        let calendarStatus = EKEventStore.authorizationStatus(for: .event)
+
         if #available(macOS 14.0, *) {
-            eventStore.requestFullAccessToReminders { _, _ in
-                DispatchQueue.main.async {
-                    self.loadReminderAccounts()
-                    self.loadReminderLists()
+            if reminderStatus == .fullAccess {
+                loadReminderAccounts()
+                loadReminderLists()
+            } else if reminderStatus == .notDetermined {
+                eventStore.requestFullAccessToReminders { _, _ in
+                    DispatchQueue.main.async {
+                        self.loadReminderAccounts()
+                        self.loadReminderLists()
+                    }
                 }
             }
-            eventStore.requestFullAccessToEvents { _, _ in
-                DispatchQueue.main.async {
-                    self.loadCalendarAccounts()
-                    self.loadCalendars()
-                    self.isLoadingAccess = false
+
+            if calendarStatus == .fullAccess {
+                loadCalendarAccounts()
+                loadCalendars()
+                isLoadingAccess = false
+            } else if calendarStatus == .notDetermined {
+                eventStore.requestFullAccessToEvents { _, _ in
+                    DispatchQueue.main.async {
+                        self.loadCalendarAccounts()
+                        self.loadCalendars()
+                        self.isLoadingAccess = false
+                    }
                 }
+            } else {
+                isLoadingAccess = false
             }
         } else {
-            eventStore.requestAccess(to: .reminder) { _, _ in
-                DispatchQueue.main.async {
-                    self.loadReminderAccounts()
-                    self.loadReminderLists()
+            if reminderStatus == .authorized {
+                loadReminderAccounts()
+                loadReminderLists()
+            } else if reminderStatus == .notDetermined {
+                eventStore.requestAccess(to: .reminder) { _, _ in
+                    DispatchQueue.main.async {
+                        self.loadReminderAccounts()
+                        self.loadReminderLists()
+                    }
                 }
             }
-            eventStore.requestAccess(to: .event) { _, _ in
-                DispatchQueue.main.async {
-                    self.loadCalendarAccounts()
-                    self.loadCalendars()
-                    self.isLoadingAccess = false
+
+            if calendarStatus == .authorized {
+                loadCalendarAccounts()
+                loadCalendars()
+                isLoadingAccess = false
+            } else if calendarStatus == .notDetermined {
+                eventStore.requestAccess(to: .event) { _, _ in
+                    DispatchQueue.main.async {
+                        self.loadCalendarAccounts()
+                        self.loadCalendars()
+                        self.isLoadingAccess = false
+                    }
                 }
+            } else {
+                isLoadingAccess = false
             }
         }
     }
