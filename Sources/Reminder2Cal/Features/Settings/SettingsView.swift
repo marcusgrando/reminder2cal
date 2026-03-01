@@ -21,6 +21,7 @@ struct SettingsView: View {
     @State private var calendars: [String]
     @State private var reminderAccounts: [String]
     @State private var reminderLists: [String]
+    @State private var isLoadingAccess = true
 
     @ObservedObject var appConfig: AppConfig
     var onSave: () -> Void
@@ -222,16 +223,45 @@ struct SettingsView: View {
         }
         .frame(minWidth: 450, maxWidth: .infinity, minHeight: 750, maxHeight: .infinity)
         .onAppear {
-            loadCalendarAccounts()
-            loadCalendars()
-            loadReminderAccounts()
-            loadReminderLists()
+            requestAccessAndLoadData()
         }
         .onChange(of: calendarAccountName) { _, _ in
             loadCalendars()
         }
         .onChange(of: reminderAccountName) { _, _ in
             loadReminderLists()
+        }
+    }
+
+    private func requestAccessAndLoadData() {
+        if #available(macOS 14.0, *) {
+            eventStore.requestFullAccessToReminders { _, _ in
+                DispatchQueue.main.async {
+                    self.loadReminderAccounts()
+                    self.loadReminderLists()
+                }
+            }
+            eventStore.requestFullAccessToEvents { _, _ in
+                DispatchQueue.main.async {
+                    self.loadCalendarAccounts()
+                    self.loadCalendars()
+                    self.isLoadingAccess = false
+                }
+            }
+        } else {
+            eventStore.requestAccess(to: .reminder) { _, _ in
+                DispatchQueue.main.async {
+                    self.loadReminderAccounts()
+                    self.loadReminderLists()
+                }
+            }
+            eventStore.requestAccess(to: .event) { _, _ in
+                DispatchQueue.main.async {
+                    self.loadCalendarAccounts()
+                    self.loadCalendars()
+                    self.isLoadingAccess = false
+                }
+            }
         }
     }
 
