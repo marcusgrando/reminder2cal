@@ -34,7 +34,7 @@ Reminder2Cal automatically creates calendar events for your reminders, giving yo
 
 ## Download
 
-**[Get it on the Mac App Store](https://apps.apple.com/app/reminder2cal)** — The easiest way to install and receive automatic updates.
+Download the latest `.dmg` from [GitHub Releases](https://github.com/marcusgrando/reminder2cal/releases).
 
 ## Getting Started
 
@@ -90,15 +90,6 @@ make install
 | `make lint` | Check code style |
 | `make format` | Format code with swift-format |
 | `make info` | Show build information |
-
-### App Store Distribution
-
-| Command | Description |
-|---------|-------------|
-| `make archive` | Create .xcarchive for App Store |
-| `make pkg` | Export signed .pkg from archive |
-| `make upload` | Upload to App Store Connect |
-| `make release` | Full: clean → archive → pkg → upload |
 
 ## Contributing
 

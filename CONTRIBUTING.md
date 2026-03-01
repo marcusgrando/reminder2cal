@@ -25,10 +25,9 @@ Open an issue with the `enhancement` label describing:
 1. Fork the repository
 2. Create a feature branch: `git checkout -b feature/your-feature`
 3. Make your changes
-4. Run tests: `make test`
-5. Run linting: `make lint`
-6. Commit with clear messages
-7. Push and open a Pull Request
+4. Run linting: `make lint`
+5. Commit with clear messages
+6. Push and open a Pull Request
 
 ### Code Style
 
@@ -45,9 +44,6 @@ cd reminder2cal
 
 # Build
 make build
-
-# Run tests
-make test
 
 # Run the app
 make run
